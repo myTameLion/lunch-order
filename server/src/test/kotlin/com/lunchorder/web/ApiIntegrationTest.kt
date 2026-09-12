@@ -370,35 +370,68 @@ class ApiIntegrationTest {
     }
 
     @Test
-    fun `当天点餐评价 - 提交 修改 未点餐拒绝 管理员按天查看（D-012）`() {
-        setTestDate("2026-09-16")
+    fun `公共聊天频道 - 发送 当天查询 管理员查历史（D-013）`() {
+        setTestDate("2026-09-18")
         val user = login("sunqi", "123456")
         val admin = login("admin", "admin123")
 
-        // 未点餐先评价 → 404/2002
-        val no = call<ErrorResponse>(HttpMethod.PUT, "/api/orders/today/evaluation", token = user, body = mapOf("rating" to 5))
-        assertEquals(HttpStatus.NOT_FOUND, no.statusCode)
-        assertEquals(2002, no.body!!.code)
+        val put = call<Map<*, *>>(HttpMethod.PUT, "/api/orders/today/chat", token = user, body = mapOf("content" to "今天吃什么"))
+        assertEquals(HttpStatus.OK, put.statusCode)
+        assertEquals("今天吃什么", put.body!!["content"])
 
-        // 点餐后评价
-        call<Void>(HttpMethod.PUT, "/api/orders/today", token = user, body = mapOf("spicy" to true))
-        val put1 = call<Map<*, *>>(HttpMethod.PUT, "/api/orders/today/evaluation", token = user, body = mapOf("rating" to 5, "comment" to "真香"))
-        assertEquals(5, (put1.body!!["rating"] as Number).toInt())
+        // 空内容与超长 → 1004
+        assertEquals(1004, call<ErrorResponse>(HttpMethod.PUT, "/api/orders/today/chat", token = user, body = mapOf("content" to "   ")).body!!.code)
+        assertEquals(1004, call<ErrorResponse>(HttpMethod.PUT, "/api/orders/today/chat", token = user, body = mapOf("content" to "长".repeat(201))).body!!.code)
 
-        val my = call<Map<*, *>>(HttpMethod.GET, "/api/orders/today/evaluation", token = user)
-        assertEquals("真香", ((my.body!!["evaluation"] as Map<*, *>)["comment"]))
+        // 多人聊天，当天查询
+        call<Map<*, *>>(HttpMethod.PUT, "/api/orders/today/chat", token = admin, body = mapOf("content" to "吃吧"))
+        val today = call<Map<*, *>>(HttpMethod.GET, "/api/orders/today/chat", token = user)
+        assertEquals("2026-09-18", today.body!!["date"])
+        assertEquals(2, (today.body!!["count"] as Number).toInt())
 
-        // 重复提交=修改（仅保留最后一次）
-        call<Map<*, *>>(HttpMethod.PUT, "/api/orders/today/evaluation", token = user, body = mapOf("rating" to 3, "comment" to "还行"))
-        // 评分非法 → 1004
-        assertEquals(1004, call<ErrorResponse>(HttpMethod.PUT, "/api/orders/today/evaluation", token = user, body = mapOf("rating" to 6)).body!!.code)
+        // 客户端只能看当天：时钟切到次日即为空
+        setTestDate("2026-09-19")
+        val nextDay = call<Map<*, *>>(HttpMethod.GET, "/api/orders/today/chat", token = user)
+        assertEquals(0, (nextDay.body!!["count"] as Number).toInt())
 
-        // 管理员按天查看：1 人，平均 3.0
-        val list = call<Map<*, *>>(HttpMethod.GET, "/api/admin/evaluations?date=2026-09-16", token = admin)
-        assertEquals(1, (list.body!!["count"] as Number).toInt())
-        assertEquals(3.0, (list.body!!["avgRating"] as Number).toDouble(), 0.001)
-        // 普通用户不可看管理端评价
-        assertEquals(HttpStatus.FORBIDDEN, call<ErrorResponse>(HttpMethod.GET, "/api/admin/evaluations?date=2026-09-16", token = user).statusCode)
+        // 管理员仍可查历史日期；普通用户无权查管理端历史
+        val history = call<Map<*, *>>(HttpMethod.GET, "/api/admin/chat?date=2026-09-18", token = admin)
+        assertEquals(2, (history.body!!["count"] as Number).toInt())
+        assertEquals(HttpStatus.FORBIDDEN, call<ErrorResponse>(HttpMethod.GET, "/api/admin/chat?date=2026-09-18", token = user).statusCode)
+    }
+
+    @Test
+    fun `定时通知设置 - 管理员修改 客户端同步（D-014）`() {
+        setTestDate("2026-09-18")
+        val admin = login("admin", "admin123")
+        val user = login("zhangsan", "123456")
+
+        val put = call<Map<*, *>>(
+            HttpMethod.PUT,
+            "/api/admin/settings/notify",
+            token = admin,
+            body = mapOf("notifyTime" to "11:30", "notifyTitle" to "开饭啦", "notifyContent" to "快去点餐"),
+        )
+        assertEquals(HttpStatus.OK, put.statusCode)
+        assertEquals("11:30", put.body!!["notifyTime"])
+
+        // 客户端同步端点（Android 拉取后本地调度）
+        val sync = call<Map<*, *>>(HttpMethod.GET, "/api/settings/notify", token = user)
+        assertEquals("11:30", sync.body!!["notifyTime"])
+        assertEquals("开饭啦", sync.body!!["notifyTitle"])
+
+        // 非法时间 / 标题超长 → 1004
+        assertEquals(1004, call<ErrorResponse>(HttpMethod.PUT, "/api/admin/settings/notify", token = admin, body = mapOf("notifyTime" to "abc", "notifyTitle" to "t", "notifyContent" to "c")).body!!.code)
+        assertEquals(1004, call<ErrorResponse>(HttpMethod.PUT, "/api/admin/settings/notify", token = admin, body = mapOf("notifyTime" to "11:30", "notifyTitle" to "长".repeat(31), "notifyContent" to "c")).body!!.code)
+
+        // 普通用户无权修改
+        assertEquals(
+            HttpStatus.FORBIDDEN,
+            call<ErrorResponse>(HttpMethod.PUT, "/api/admin/settings/notify", token = user, body = mapOf("notifyTime" to "11:30", "notifyTitle" to "t", "notifyContent" to "c")).statusCode,
+        )
+
+        // 恢复默认
+        call<Map<*, *>>(HttpMethod.PUT, "/api/admin/settings/notify", token = admin, body = mapOf("notifyTime" to "17:30", "notifyTitle" to "午餐点餐提醒", "notifyContent" to "今天需要点餐吗？请在 18:00 前登记"))
     }
 
     @Test

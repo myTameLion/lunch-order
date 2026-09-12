@@ -2,17 +2,15 @@ package com.lunchorder.web
 
 import com.lunchorder.auth.AuthFilter
 import com.lunchorder.domain.User
-import com.lunchorder.service.EvaluationService
+import com.lunchorder.service.ChatService
 import com.lunchorder.service.OrderService
 import com.lunchorder.service.SummaryService
-import com.lunchorder.web.dto.EvaluationUpsertRequest
-import com.lunchorder.web.dto.EvaluationView
-import com.lunchorder.web.dto.MyEvaluationResponse
+import com.lunchorder.web.dto.ChatPostRequest
+import com.lunchorder.web.dto.ChatResponse
 import com.lunchorder.web.dto.OrderUpsertRequest
 import com.lunchorder.web.dto.OrderView
 import com.lunchorder.web.dto.TodayAllResponse
 import com.lunchorder.web.dto.TodayStatusResponse
-import com.lunchorder.web.dto.toView
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -29,7 +27,7 @@ import java.time.ZonedDateTime
 class OrderController(
     private val orderService: OrderService,
     private val summaryService: SummaryService,
-    private val evaluationService: EvaluationService,
+    private val chatService: ChatService,
     private val clock: Clock,
 ) {
 
@@ -53,13 +51,14 @@ class OrderController(
         // D-008：所有登录用户都可实时查看当天点餐情况（不再限制 ADMIN）
         summaryService.todayAll(now())
 
-    @GetMapping("/today/evaluation")
-    fun myEvaluation(request: HttpServletRequest): MyEvaluationResponse =
-        MyEvaluationResponse(evaluationService.myEvaluation(request.user().loginName, now())?.toView())
+    @GetMapping("/today/chat")
+    fun todayChat(request: HttpServletRequest): ChatResponse =
+        // D-013：客户端仅可查看当天聊天记录
+        chatService.todayMessages(now())
 
-    @PutMapping("/today/evaluation")
-    fun upsertEvaluation(request: HttpServletRequest, @RequestBody req: EvaluationUpsertRequest): EvaluationView =
-        evaluationService.upsert(request.user(), req.rating, req.comment, now()).toView()
+    @PutMapping("/today/chat")
+    fun sendChat(request: HttpServletRequest, @RequestBody req: ChatPostRequest) =
+        chatService.send(request.user(), req.content, now())
 
     private fun HttpServletRequest.user(): User =
         this.getAttribute(AuthFilter.ATTR_USER) as? User

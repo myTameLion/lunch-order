@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { api } from '../api'
-import type { EvaluationView, TodayAllResponse, TodayStatus } from '../api/types'
+import type { ChatResponse, TodayAllResponse, TodayStatus } from '../api/types'
 import { formatOrderedAt, formatRemain, windowState } from '../utils/window'
 
 const status = ref<TodayStatus | null>(null)
@@ -26,37 +26,39 @@ async function loadAll() {
   }
 }
 
-/** 当天评价（D-012）：需已登记点餐；重复提交=修改 */
-const myEval = ref<EvaluationView | null>(null)
-const evalRating = ref(0)
-const evalComment = ref('')
-const evalSubmitting = ref(false)
+/** 公共聊天频道（D-013）：次要功能，仅展示当天消息，15 秒轮询 */
+const chat = ref<ChatResponse | null>(null)
+const chatInput = ref('')
+const chatLoading = ref(false)
+const chatSubmitting = ref(false)
+let chatPollTimer: number | undefined
 
-async function loadMyEval() {
+async function loadChat() {
+  chatLoading.value = true
   try {
-    myEval.value = await api.getMyEvaluation()
-    if (myEval.value) {
-      evalRating.value = myEval.value.rating
-      evalComment.value = myEval.value.comment
-    }
+    chat.value = await api.getTodayChat()
   } catch {
     /* 拦截器已提示 */
+  } finally {
+    chatLoading.value = false
   }
 }
 
-async function submitEval() {
-  if (evalRating.value === 0) {
-    ElMessage.info('请先选择星级')
+async function sendChatMsg() {
+  const content = chatInput.value.trim()
+  if (!content) {
+    ElMessage.info('请输入消息内容')
     return
   }
-  evalSubmitting.value = true
+  chatSubmitting.value = true
   try {
-    myEval.value = await api.putEvaluation(evalRating.value, evalComment.value.trim())
-    ElMessage.success('评价已提交')
+    await api.sendChat(content)
+    chatInput.value = ''
+    await loadChat()
   } catch {
-    /* 拦截器已提示（如 2002 未点餐） */
+    /* 拦截器已提示 */
   } finally {
-    evalSubmitting.value = false
+    chatSubmitting.value = false
   }
 }
 
@@ -98,13 +100,15 @@ function tick() {
 onMounted(() => {
   void load()
   void loadAll()
-  void loadMyEval()
+  void loadChat()
   timer = window.setInterval(tick, 1000)
   pollTimer = window.setInterval(loadAll, 30_000)
+  chatPollTimer = window.setInterval(loadChat, 15_000)
 })
 onBeforeUnmount(() => {
   if (timer) window.clearInterval(timer)
   if (pollTimer) window.clearInterval(pollTimer)
+  if (chatPollTimer) window.clearInterval(chatPollTimer)
 })
 
 async function save() {
@@ -213,32 +217,36 @@ async function save() {
     <el-empty v-else description="今天还没有人点餐" :image-size="60" />
   </el-card>
 
-  <el-card class="eval-card" data-test="eval">
+  <el-card v-loading="chatLoading" class="chat-card" data-test="chat">
     <template #header>
       <div class="card-head">
-        <span>今日点餐评价</span>
-        <span v-if="myEval" class="refresh-hint">已于 {{ formatOrderedAt(myEval.ratedAt) }} 评价，可修改</span>
+        <span>今日聊天频道 · {{ chat?.date }}</span>
+        <span class="refresh-hint">仅显示当天消息，每 15 秒刷新</span>
       </div>
     </template>
-    <el-alert v-if="!hasOrder" type="info" :closable="false" title="登记今天的点餐后即可评价" />
-    <template v-else>
-      <div class="eval-row">
-        <el-rate v-model="evalRating" data-test="rate" />
-        <el-button type="primary" size="small" :loading="evalSubmitting" data-test="eval-submit" @click="submitEval">
-          提交评价
-        </el-button>
+
+    <div v-if="(chat?.messages?.length ?? 0) > 0" class="chat-list" data-test="chat-list">
+      <div v-for="(m, i) in chat!.messages" :key="i" class="chat-item">
+        <div class="chat-meta">
+          <b>{{ m.displayName }}</b>
+          <span class="chat-time">{{ formatOrderedAt(m.sentAt) }}</span>
+        </div>
+        <div class="chat-content">{{ m.content }}</div>
       </div>
+    </div>
+    <el-empty v-else description="今天还没有人发言，来说点什么吧" :image-size="60" />
+
+    <div class="chat-input-row">
       <el-input
-        v-model="evalComment"
-        type="textarea"
-        :rows="2"
-        maxlength="100"
+        v-model="chatInput"
+        maxlength="200"
         show-word-limit
-        placeholder="可选：聊聊今天的饭菜（100 字以内）"
-        data-test="eval-comment"
-        class="eval-input"
+        placeholder="说点什么…（200 字以内）"
+        data-test="chat-input"
+        @keyup.enter="sendChatMsg"
       />
-    </template>
+      <el-button type="primary" :loading="chatSubmitting" data-test="chat-send" @click="sendChatMsg">发送</el-button>
+    </div>
   </el-card>
 </template>
 
@@ -281,14 +289,40 @@ async function save() {
   border-radius: 10px;
   margin-top: 18px;
 }
-.eval-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+.chat-card {
+  border-radius: 10px;
+  margin-top: 18px;
+}
+.chat-list {
+  max-height: 320px;
+  overflow-y: auto;
   margin-bottom: 12px;
 }
-.eval-input {
-  max-width: 560px;
+.chat-item {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f5f7fa;
+  margin-bottom: 8px;
+}
+.chat-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #606266;
+  margin-bottom: 2px;
+}
+.chat-time {
+  color: #c0c4cc;
+}
+.chat-content {
+  font-size: 14px;
+  color: #303133;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.chat-input-row {
+  display: flex;
+  gap: 10px;
 }
 .refresh-hint {
   font-size: 12px;

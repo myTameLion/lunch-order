@@ -36,10 +36,10 @@ const router = createRouter({
           meta: { title: '用户管理' },
         },
         {
-          path: 'evaluations',
-          name: 'evaluations',
-          component: () => import('@/views/EvaluationsView.vue'),
-          meta: { title: '点餐评价' },
+          path: 'chat',
+          name: 'chat',
+          component: () => import('@/views/ChatRecordsView.vue'),
+          meta: { title: '聊天记录' },
         },
         {
           path: 'settings',

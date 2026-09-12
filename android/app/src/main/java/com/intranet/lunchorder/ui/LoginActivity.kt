@@ -103,11 +103,20 @@ class LoginActivity : AppCompatActivity() {
         binding.progress.visibility = View.VISIBLE
         lifecycleScope.launch {
             try {
-                val resp = LunchRepository.create(prefs).login(loginName, password)
+                val repo = LunchRepository.create(prefs)
+                val resp = repo.login(loginName, password)
                 prefs.token = resp.token
                 prefs.loginName = resp.loginName
                 prefs.displayName = resp.displayName
                 prefs.role = resp.role
+                // 登录成功后同步服务端定时通知配置（D-014），失败不阻塞登录
+                try {
+                    val n = repo.getNotifySettings()
+                    prefs.notifyTime = n.notifyTime
+                    prefs.notifyTitle = n.notifyTitle
+                    prefs.notifyContent = n.notifyContent
+                } catch (_: ApiException) {
+                }
                 goMain()
             } catch (e: ApiException) {
                 val msg = if (e.code == 1001) {

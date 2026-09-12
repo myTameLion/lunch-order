@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: 内网点餐系统 REST API
-  version: 1.2.0
+  version: 1.3.0
   description: |
     单一事实来源，任何模块不得私自偏离。
     - 鉴权：除 POST /api/auth/login 外，均需 Header `Authorization: Bearer <JWT>`（HS256，有效期 7 天，payload 含 sub=loginName / role / pwdVer）。
@@ -157,46 +157,52 @@ paths:
         '400': { $ref: '#/components/responses/Error' }
         '401': { $ref: '#/components/responses/Error' }
 
-  /api/orders/today/evaluation:
+  /api/orders/today/chat:
     get:
       tags: [orders]
-      summary: 我当天的点餐评价（D-012）
+      summary: 当天公共聊天频道消息（D-013；客户端仅当天，管理员查历史走 /api/admin/chat）
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                type: object
-                required: [evaluation]
-                properties:
-                  evaluation:
-                    nullable: true
-                    $ref: '#/components/schemas/EvaluationView'
+                $ref: '#/components/schemas/ChatResponse'
         '401': { $ref: '#/components/responses/Error' }
     put:
       tags: [orders]
-      summary: 提交/修改当天评价（需当天已登记点餐；重复提交=修改，仅保留最后一次）
+      summary: 发送聊天消息（1~200 字，追加式存储）
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [rating]
+              required: [content]
               properties:
-                rating: { type: integer, minimum: 1, maximum: 5 }
-                comment: { type: string, maxLength: 100 }
+                content: { type: string, minLength: 1, maxLength: 200 }
       responses:
         '200':
-          description: 保存后的评价
+          description: 已发送的消息
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EvaluationView'
+                $ref: '#/components/schemas/ChatMessage'
         '400': { $ref: '#/components/responses/Error' }
         '401': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
+
+  /api/settings/notify:
+    get:
+      tags: [me]
+      summary: 定时通知设置（D-014；登录客户端同步用）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotifySettings'
+        '401': { $ref: '#/components/responses/Error' }
 
   /api/orders/today/all:
     get:
@@ -294,10 +300,10 @@ paths:
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
 
-  /api/admin/evaluations:
+  /api/admin/chat:
     get:
       tags: [admin]
-      summary: 按天查看全员点餐评价（每用户仅保留最后一次，D-012）
+      summary: 按天查看公共聊天频道历史记录（D-013，可查任意日期）
       parameters:
         - { name: date, in: query, required: true, schema: { type: string, format: date } }
       responses:
@@ -306,7 +312,45 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EvaluationsResponse'
+                $ref: '#/components/schemas/ChatResponse'
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+
+  /api/admin/settings/notify:
+    get:
+      tags: [admin]
+      summary: 查看定时通知设置（D-014）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotifySettings'
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [admin]
+      summary: 设置定时通知（提醒时间 + 标题 + 内容，写入 config.json）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [notifyTime, notifyTitle, notifyContent]
+              properties:
+                notifyTime: { type: string, example: "17:30" }
+                notifyTitle: { type: string, maxLength: 30 }
+                notifyContent: { type: string, maxLength: 60 }
+      responses:
+        '200':
+          description: 保存后的设置
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotifySettings'
         '400': { $ref: '#/components/responses/Error' }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
@@ -561,28 +605,28 @@ components:
         totalDays: { type: integer }
         spicyDays: { type: integer }
         nonSpicyDays: { type: integer }
-    EvaluationView:
+    ChatMessage:
       type: object
-      required: [rating, comment, ratedAt]
+      required: [loginName, displayName, content, sentAt]
       properties:
-        rating: { type: integer, minimum: 1, maximum: 5 }
-        comment: { type: string }
-        ratedAt: { type: string }
-    EvaluationsResponse:
+        loginName: { type: string }
+        displayName: { type: string }
+        content: { type: string, maxLength: 200 }
+        sentAt: { type: string }
+    ChatResponse:
       type: object
-      required: [date, count, avgRating, evaluations]
+      required: [date, count, messages]
       properties:
         date: { type: string, format: date }
-        count: { type: integer, description: 评价人数 }
-        avgRating: { type: number, description: 平均分，1 位小数；无人评价时为 0 }
-        evaluations:
+        count: { type: integer }
+        messages:
           type: array
           items:
-            type: object
-            required: [loginName, displayName, rating, comment, ratedAt]
-            properties:
-              loginName: { type: string }
-              displayName: { type: string }
-              rating: { type: integer, minimum: 1, maximum: 5 }
-              comment: { type: string }
-              ratedAt: { type: string }
+            $ref: '#/components/schemas/ChatMessage'
+    NotifySettings:
+      type: object
+      required: [notifyTime, notifyTitle, notifyContent]
+      properties:
+        notifyTime: { type: string, example: "17:30" }
+        notifyTitle: { type: string, example: "午餐点餐提醒" }
+        notifyContent: { type: string, example: "今天需要点餐吗？请在 18:00 前登记" }

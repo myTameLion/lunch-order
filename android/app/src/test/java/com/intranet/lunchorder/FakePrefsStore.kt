@@ -18,6 +18,8 @@ class FakePrefsStore(
     override var serverUrl: String = initialServerUrl
     override var notifyEnabled: Boolean = false
     override var notifyTime: String = PrefsStore.DEFAULT_NOTIFY_TIME
+    override var notifyTitle: String = PrefsStore.DEFAULT_NOTIFY_TITLE
+    override var notifyContent: String = PrefsStore.DEFAULT_NOTIFY_CONTENT
 
     override fun clearSession() {
         clearedSession = true

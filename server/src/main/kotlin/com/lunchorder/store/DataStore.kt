@@ -7,9 +7,9 @@ import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.lunchorder.LunchProperties
 import com.lunchorder.auth.PasswordVault
 import com.lunchorder.domain.AppConfigJson
-import com.lunchorder.domain.DayEvaluations
+import com.lunchorder.domain.DayMessages
 import com.lunchorder.domain.DayOrders
-import com.lunchorder.domain.EvaluationRecord
+import com.lunchorder.domain.ChatMessage
 import com.lunchorder.domain.OrderRecord
 import com.lunchorder.domain.User
 import com.lunchorder.domain.UsersFile
@@ -49,8 +49,8 @@ class DataStore(props: LunchProperties, private val vault: PasswordVault? = null
     private val configPath: Path get() = dataDir.resolve("config.json")
     private fun ordersDir(): Path = dataDir.resolve("orders")
     private fun dayPath(date: LocalDate): Path = ordersDir().resolve("$date.json")
-    private fun evalsDir(): Path = dataDir.resolve("evaluations")
-    private fun evalPath(date: LocalDate): Path = evalsDir().resolve("$date.json")
+    private fun messagesDir(): Path = dataDir.resolve("messages")
+    private fun messagePath(date: LocalDate): Path = messagesDir().resolve("$date.json")
 
     init {
         // 构造时自举（幂等）：Spring 与测试环境行为一致
@@ -63,7 +63,7 @@ class DataStore(props: LunchProperties, private val vault: PasswordVault? = null
     fun bootstrap() {
         Files.createDirectories(dataDir)
         Files.createDirectories(ordersDir())
-        Files.createDirectories(evalsDir())
+        Files.createDirectories(messagesDir())
         withLock {
             ensureUsers()
             if (!Files.exists(configPath)) {
@@ -144,21 +144,21 @@ class DataStore(props: LunchProperties, private val vault: PasswordVault? = null
         atomicWrite(dayPath(LocalDate.parse(day.date)), mapper.writeValueAsString(day))
     }
 
-    // ---------- evaluations/YYYY-MM-DD.json（D-012） ----------
+    // ---------- messages/YYYY-MM-DD.json（D-013 公共聊天频道） ----------
 
-    fun readEvaluations(date: LocalDate): DayEvaluations? {
-        val path = evalPath(date)
+    fun readMessages(date: LocalDate): DayMessages? {
+        val path = messagePath(date)
         if (!Files.exists(path)) return null
         return try {
-            mapper.readValue(path.toFile(), DayEvaluations::class.java)
+            mapper.readValue(path.toFile(), DayMessages::class.java)
         } catch (e: Exception) {
             log.warn("{} 无法解析，按空处理（下次保存会自愈）", path.fileName, e)
             null
         }
     }
 
-    fun writeEvaluations(day: DayEvaluations) = withLock {
-        atomicWrite(evalPath(LocalDate.parse(day.date)), mapper.writeValueAsString(day))
+    fun writeMessages(day: DayMessages) = withLock {
+        atomicWrite(messagePath(LocalDate.parse(day.date)), mapper.writeValueAsString(day))
     }
 
     // ---------- config.json ----------

@@ -11,6 +11,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.intranet.lunchorder.R
+import com.intranet.lunchorder.data.prefs.PrefsStoreProvider
 import com.intranet.lunchorder.ui.MainActivity
 
 /**
@@ -47,10 +48,15 @@ object Notifications {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
+        // 通知标题/内容优先使用管理员在中台配置的文案（D-014），缺省回退本地默认
+        val prefs = PrefsStoreProvider.get(context)
+        val title = prefs.notifyTitle.ifEmpty { context.getString(R.string.reminder_title) }
+        val content = prefs.notifyContent.ifEmpty { context.getString(R.string.reminder_body) }
+
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_bowl)
-            .setContentTitle(context.getString(R.string.reminder_title))
-            .setContentText(context.getString(R.string.reminder_body))
+            .setContentTitle(title)
+            .setContentText(content)
             .setAutoCancel(true)
             .setContentIntent(contentIntent)
             .build()

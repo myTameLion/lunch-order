@@ -8,8 +8,8 @@ vi.mock('../../api', () => ({
   api: {
     getToday: vi.fn(),
     getTodayAll: vi.fn(),
-    getMyEvaluation: vi.fn(),
-    putEvaluation: vi.fn(),
+    getTodayChat: vi.fn(),
+    sendChat: vi.fn(),
     putOrder: vi.fn(),
     cancelOrder: vi.fn(),
   },
@@ -85,7 +85,7 @@ describe('OrderView 今日点餐', () => {
       myOrder: null,
     })
     mockedApi.getTodayAll.mockResolvedValue(todayAllData)
-    mockedApi.getMyEvaluation.mockResolvedValue(null)
+    mockedApi.getTodayChat.mockResolvedValue({ date: '2026-09-07', count: 0, messages: [] })
     const wrapper = mountView()
     await flushPromises()
 
@@ -102,43 +102,53 @@ describe('OrderView 今日点餐', () => {
     wrapper.unmount()
   })
 
-  it('评价卡片（D-012）：已点餐可评分提交，未点餐提示先登记', async () => {
-    // 已点餐：显示评分与提交按钮
-    mockedApi.getToday.mockResolvedValue({
-      date: '2026-09-07',
-      window: { start: '14:00', end: '18:00', open: true, serverTime: isoAtLocal(15) },
-      myOrder: { spicy: true, orderedAt: '2026-09-07T14:23:05+08:00' },
-    })
-    mockedApi.getTodayAll.mockResolvedValue(todayAllData)
-    mockedApi.getMyEvaluation.mockResolvedValue({ rating: 4, comment: '不错', ratedAt: '2026-09-07T18:30:00+08:00' })
-    mockedApi.putEvaluation.mockResolvedValue({ rating: 5, comment: '', ratedAt: '2026-09-07T18:40:00+08:00' })
-    const wrapper = mountView()
-    await flushPromises()
-
-    const evalCard = wrapper.find('[data-test="eval"]')
-    expect(evalCard.exists()).toBe(true)
-    expect(evalCard.text()).toContain('可修改')
-    // 点击第 5 颗星后提交
-    await wrapper.findAll('.el-rate__item')[4].trigger('click')
-    await wrapper.find('[data-test="eval-submit"]').trigger('click')
-    await flushPromises()
-    expect(mockedApi.putEvaluation).toHaveBeenCalledWith(5, '不错')
-    wrapper.unmount()
-  })
-
-  it('评价卡片（D-012）：未点餐时提示先登记', async () => {
+  it('聊天频道（D-013）：展示当天消息并可发送', async () => {
     mockedApi.getToday.mockResolvedValue({
       date: '2026-09-07',
       window: { start: '14:00', end: '18:00', open: true, serverTime: isoAtLocal(15) },
       myOrder: null,
     })
-    mockedApi.getTodayAll.mockResolvedValue(todayAllData)
-    mockedApi.getMyEvaluation.mockResolvedValue(null)
+    mockedApi.getTodayChat.mockResolvedValue({
+      date: '2026-09-07',
+      count: 2,
+      messages: [
+        { loginName: 'zhangsan', displayName: '张三', content: '今天吃什么', sentAt: '2026-09-07T15:01:00+08:00' },
+        { loginName: 'lisi', displayName: '李四', content: '吃食堂', sentAt: '2026-09-07T15:05:00+08:00' },
+      ],
+    })
+    mockedApi.sendChat.mockResolvedValue({ loginName: 'zhangsan', displayName: '张三', content: '好主意', sentAt: '2026-09-07T15:06:00+08:00' })
     const wrapper = mountView()
     await flushPromises()
 
-    expect(wrapper.find('[data-test="eval"]').text()).toContain('登记今天的点餐后即可评价')
-    expect(wrapper.find('[data-test="eval-submit"]').exists()).toBe(false)
+    const panel = wrapper.find('[data-test="chat"]')
+    expect(panel.exists()).toBe(true)
+    expect(panel.text()).toContain('今天吃什么')
+    expect(panel.text()).toContain('吃食堂')
+
+    // 输入并发送
+    await wrapper.find('[data-test="chat-input"]').setValue('好主意')
+    await wrapper.find('[data-test="chat-send"]').trigger('click')
+    await flushPromises()
+    expect(mockedApi.sendChat).toHaveBeenCalledWith('好主意')
+    wrapper.unmount()
+  })
+
+  it('聊天频道（D-013）：空消息不调用发送接口', async () => {
+    mockedApi.getToday.mockResolvedValue({
+      date: '2026-09-07',
+      window: { start: '14:00', end: '18:00', open: true, serverTime: isoAtLocal(15) },
+      myOrder: null,
+    })
+    mockedApi.getTodayChat.mockResolvedValue({ date: '2026-09-07', count: 0, messages: [] })
+    mockedApi.sendChat.mockResolvedValue({})
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.find('[data-test="chat"]').text()).toContain('今天还没有人发言')
+    mockedApi.sendChat.mockClear()
+    await wrapper.find('[data-test="chat-send"]').trigger('click')
+    await flushPromises()
+    expect(mockedApi.sendChat).not.toHaveBeenCalled()
     wrapper.unmount()
   })
 

@@ -120,9 +120,23 @@ export interface EvaluationRecord {
   ratedAt: string
 }
 
-export interface EvaluationsResponse {
+// ── v1.3.0 ──（评价功能已废弃，重构为公共聊天频道）
+
+export interface ChatMessage {
+  loginName: string
+  displayName: string
+  content: string
+  sentAt: string
+}
+
+export interface ChatResponse {
   date: string
   count: number
-  avgRating: number
-  evaluations: EvaluationRecord[]
+  messages: ChatMessage[]
+}
+
+export interface NotifySettings {
+  notifyTime: string
+  notifyTitle: string
+  notifyContent: string
 }

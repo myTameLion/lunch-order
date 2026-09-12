@@ -4,10 +4,11 @@ import { http } from './http'
 import type {
   BulkCreateResponse,
   BulkUserItem,
+  ChatResponse,
   CreateUserRequest,
-  EvaluationsResponse,
   LoginRequest,
   LoginResponse,
+  NotifySettings,
   RangeSummary,
   TodayAllResponse,
   UserView,
@@ -101,8 +102,20 @@ export async function exportUsers(): Promise<AxiosResponse<Blob>> {
   }
 }
 
-/** GET /api/admin/evaluations?date= 按天查看全员评价（D-012） */
-export async function getEvaluations(date: string): Promise<EvaluationsResponse> {
-  const { data } = await http.get<EvaluationsResponse>('/admin/evaluations', { params: { date } })
+/** GET /api/admin/chat?date= 按天查看公共聊天频道历史记录（D-013） */
+export async function getChatByDate(date: string): Promise<ChatResponse> {
+  const { data } = await http.get<ChatResponse>('/admin/chat', { params: { date } })
+  return data
+}
+
+/** GET /api/admin/settings/notify 查看定时通知设置（D-014） */
+export async function getNotifySettings(): Promise<NotifySettings> {
+  const { data } = await http.get<NotifySettings>('/admin/settings/notify')
+  return data
+}
+
+/** PUT /api/admin/settings/notify 设置定时通知（D-014） */
+export async function updateNotifySettings(notifyTime: string, notifyTitle: string, notifyContent: string): Promise<NotifySettings> {
+  const { data } = await http.put<NotifySettings>('/admin/settings/notify', { notifyTime, notifyTitle, notifyContent })
   return data
 }

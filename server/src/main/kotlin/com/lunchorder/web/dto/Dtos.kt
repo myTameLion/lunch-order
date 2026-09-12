@@ -72,13 +72,9 @@ data class MyOrdersResponse(
     val nonSpicyDays: Int,
 )
 
-data class EvaluationView(val rating: Int, val comment: String, val ratedAt: String)
-fun com.lunchorder.domain.EvaluationRecord.toView() = EvaluationView(rating, comment, ratedAt)
-data class MyEvaluationResponse(val evaluation: EvaluationView?)
-data class EvaluationUpsertRequest(val rating: Int = 0, val comment: String? = null)
-data class EvaluationsResponse(
-    val date: String,
-    val count: Int,
-    val avgRating: Double,
-    val evaluations: List<com.lunchorder.domain.EvaluationRecord>,
-)
+// ── v1.3.0 ──
+
+data class ChatPostRequest(val content: String = "")
+data class ChatResponse(val date: String, val count: Int, val messages: List<com.lunchorder.domain.ChatMessage>)
+data class NotifySettings(val notifyTime: String, val notifyTitle: String, val notifyContent: String)
+data class NotifyUpdateRequest(val notifyTime: String = "", val notifyTitle: String = "", val notifyContent: String = "")

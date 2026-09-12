@@ -53,11 +53,18 @@ export interface TodayAllResponse {
   orders: TodayOrderItem[]
 }
 
-/** 我的当天评价（D-012） */
-export interface EvaluationView {
-  rating: number
-  comment: string
-  ratedAt: string
+/** 公共聊天频道消息（D-013；客户端仅当天） */
+export interface ChatMessage {
+  loginName: string
+  displayName: string
+  content: string
+  sentAt: string
+}
+
+export interface ChatResponse {
+  date: string
+  count: number
+  messages: ChatMessage[]
 }
 
 /** 我的历史点餐（D-011） */

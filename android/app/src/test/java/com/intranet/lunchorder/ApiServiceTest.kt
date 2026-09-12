@@ -139,28 +139,35 @@ class ApiServiceTest {
     }
 
     @Test
-    fun `评价 - 提交与查询（D-012）`() = runTest {
+    fun `聊天频道 - 发送与当天查询（D-013）`() = runTest {
         server.enqueue(
             MockResponse().setResponseCode(200)
-                .setBody("""{"rating":4,"comment":"不错","ratedAt":"2026-09-07T18:30:00+08:00"}"""),
+                .setBody("""{"loginName":"zhangsan","displayName":"张三","content":"今天吃什么","sentAt":"2026-09-11T15:01:00+08:00"}"""),
         )
-        val saved = repo.putEvaluation(4, "不错")
-        assertEquals(4, saved.rating)
-        assertEquals("/api/orders/today/evaluation", server.takeRequest().path)
+        val sent = repo.sendChat("今天吃什么")
+        assertEquals("今天吃什么", sent.content)
+        assertEquals("/api/orders/today/chat", server.takeRequest().path)
 
         server.enqueue(
             MockResponse().setResponseCode(200)
-                .setBody("""{"evaluation":{"rating":4,"comment":"不错","ratedAt":"2026-09-07T18:30:00+08:00"}}"""),
+                .setBody("""{"date":"2026-09-11","count":1,"messages":[
+                    {"loginName":"zhangsan","displayName":"张三","content":"今天吃什么","sentAt":"2026-09-11T15:01:00+08:00"}]}"""),
         )
-        val mine = repo.getMyEvaluation()
-        assertEquals(4, mine?.rating)
+        val chat = repo.getTodayChat()
+        assertEquals(1, chat.count)
+        assertEquals("张三", chat.messages[0].displayName)
     }
 
     @Test
-    fun `评价 - 未点餐返回 2002（D-012）`() = runTest {
-        server.enqueue(MockResponse().setResponseCode(404).setBody("""{"code":2002,"message":"请先登记今天的点餐，再进行评价"}"""))
-        val e = runCatching { repo.putEvaluation(5, "") }.exceptionOrNull()
-        assertEquals(2002, (e as ApiException).code)
+    fun `通知设置同步（D-014）`() = runTest {
+        server.enqueue(
+            MockResponse().setResponseCode(200)
+                .setBody("""{"notifyTime":"11:30","notifyTitle":"开饭啦","notifyContent":"快去点餐"}"""),
+        )
+        val n = repo.getNotifySettings()
+        assertEquals("11:30", n.notifyTime)
+        assertEquals("开饭啦", n.notifyTitle)
+        assertEquals("/api/settings/notify", server.takeRequest().path)
     }
 
     @Test

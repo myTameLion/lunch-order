@@ -1,13 +1,16 @@
 package com.lunchorder.web
 
 import com.lunchorder.exception.BusinessException
-import com.lunchorder.service.EvaluationService
+import com.lunchorder.service.ChatService
+import com.lunchorder.service.SettingsService
 import com.lunchorder.service.SummaryService
 import com.lunchorder.service.UserService
 import com.lunchorder.web.dto.BulkCreateRequest
 import com.lunchorder.web.dto.BulkCreateResponse
+import com.lunchorder.web.dto.ChatResponse
 import com.lunchorder.web.dto.CreateUserRequest
-import com.lunchorder.web.dto.EvaluationsResponse
+import com.lunchorder.web.dto.NotifySettings
+import com.lunchorder.web.dto.NotifyUpdateRequest
 import com.lunchorder.web.dto.RangeSummary
 import com.lunchorder.web.dto.UserView
 import com.lunchorder.web.dto.UsersResponse
@@ -32,7 +35,8 @@ import java.time.LocalDate
 class AdminController(
     private val summaryService: SummaryService,
     private val userService: UserService,
-    private val evaluationService: EvaluationService,
+    private val chatService: ChatService,
+    private val settingsService: SettingsService,
     private val windowService: com.lunchorder.service.WindowService,
 ) {
 
@@ -80,10 +84,17 @@ class AdminController(
         return WindowSettings(s.toString(), e.toString())
     }
 
-    /** 按天查看全员评价（D-012） */
-    @GetMapping("/evaluations")
-    fun evaluations(@RequestParam date: String): EvaluationsResponse =
-        evaluationService.adminList(parseDate(date))
+    /** 按天查看公共聊天频道历史记录（D-013，可查任意日期） */
+    @GetMapping("/chat")
+    fun chat(@RequestParam date: String): ChatResponse = chatService.adminList(parseDate(date))
+
+    /** 定时通知设置（D-014） */
+    @GetMapping("/settings/notify")
+    fun getNotify(): NotifySettings = settingsService.notifySettings()
+
+    @PutMapping("/settings/notify")
+    fun updateNotify(@RequestBody req: NotifyUpdateRequest): NotifySettings =
+        settingsService.updateNotify(req.notifyTime, req.notifyTitle, req.notifyContent)
 
     private fun parseDate(s: String): LocalDate =
         runCatching { LocalDate.parse(s) }

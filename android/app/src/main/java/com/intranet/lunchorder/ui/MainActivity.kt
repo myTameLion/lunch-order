@@ -15,8 +15,10 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.intranet.lunchorder.R
 import com.intranet.lunchorder.alarm.ReminderScheduler
+import com.intranet.lunchorder.data.api.ApiException
 import com.intranet.lunchorder.data.api.AuthEvents
 import com.intranet.lunchorder.data.prefs.PrefsStore
+import com.intranet.lunchorder.data.repo.LunchRepository
 import com.intranet.lunchorder.data.prefs.PrefsStoreProvider
 import com.intranet.lunchorder.databinding.ActivityMainBinding
 import com.intranet.lunchorder.ui.mine.MineFragment
@@ -73,8 +75,18 @@ class MainActivity : AppCompatActivity() {
         // 通知权限（API 33+ 运行时请求）
         requestNotificationPermissionIfNeeded()
 
-        // App 启动后按当前设置重新注册每日提醒
-        ReminderScheduler.schedule(this)
+        // App 启动后同步服务端定时通知配置（D-014）并重新注册每日提醒
+        lifecycleScope.launch {
+            try {
+                val n = LunchRepository.create(prefs).getNotifySettings()
+                prefs.notifyTime = n.notifyTime
+                prefs.notifyTitle = n.notifyTitle
+                prefs.notifyContent = n.notifyContent
+            } catch (_: ApiException) {
+                /* 同步失败保持本地配置 */
+            }
+            ReminderScheduler.schedule(this@MainActivity)
+        }
     }
 
     private fun switchTo(itemId: Int): Boolean {

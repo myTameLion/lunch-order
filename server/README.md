@@ -1,4 +1,4 @@
-# lunch-server · 后台服务（契约版本: 1.2.0）
+# lunch-server · 后台服务（契约版本: 1.3.0）
 
 Spring Boot 3.3.5 + Kotlin 2.0.21。统一认证中心（SSO）+ 点餐业务 API + 统计/Excel 导出 + web/admin 静态托管。**无数据库**，数据落 `$LUNCH_DATA_DIR`（默认 `./data`）。
 

@@ -15,16 +15,15 @@ data class User(
 
 data class UsersFile(val users: MutableList<User> = mutableListOf())
 
-/** evaluations/YYYY-MM-DD.json 中的一条评价（D-012；每用户每天仅保留最后一次） */
-data class EvaluationRecord(
+/** messages/YYYY-MM-DD.json 中的一条聊天消息（D-013 公共聊天频道，追加式存储） */
+data class ChatMessage(
     val loginName: String,
     val displayName: String,
-    val rating: Int,
-    val comment: String = "",
-    val ratedAt: String,
+    val content: String,
+    val sentAt: String,
 )
 
-data class DayEvaluations(val date: String, val evaluations: MutableList<EvaluationRecord> = mutableListOf())
+data class DayMessages(val date: String, val messages: MutableList<ChatMessage> = mutableListOf())
 
 /** orders/YYYY-MM-DD.json 中的一条点餐记录；时间一律 ISO-8601 带 +08:00 偏移的字符串 */
 data class OrderRecord(
@@ -41,4 +40,6 @@ data class AppConfigJson(
     val orderWindowStart: String = "14:00",
     val orderWindowEnd: String = "18:00",
     val notifyTime: String = "17:30",
+    val notifyTitle: String = "午餐点餐提醒",
+    val notifyContent: String = "今天需要点餐吗？请在 18:00 前登记",
 )

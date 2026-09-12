@@ -1,5 +1,6 @@
 package com.intranet.lunchorder.ui.today
 
+import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -13,19 +14,19 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.intranet.lunchorder.R
 import com.intranet.lunchorder.data.api.ApiException
-import com.intranet.lunchorder.data.model.EvaluationView
 import com.intranet.lunchorder.data.model.TodayAllResponse
 import com.intranet.lunchorder.data.model.TodayStatus
 import com.intranet.lunchorder.data.prefs.PrefsStoreProvider
 import com.intranet.lunchorder.data.repo.LunchRepository
 import com.intranet.lunchorder.databinding.FragmentTodayBinding
 import com.intranet.lunchorder.logic.TimeMath
+import com.intranet.lunchorder.ui.chat.ChatActivity
 import kotlinx.coroutines.launch
 
 /**
  * 今日点餐：GET /api/orders/today 渲染窗口状态、倒计时、要辣/不要辣选择；
  * PUT 登记/修改、DELETE 取消（窗口关闭时控件禁用，仅展示状态）。
- * 另加载全员当日点餐情况（D-008：所有登录用户可查）。
+ * 另加载全员当日点餐情况（D-008）；聊天频道为次要入口（D-013）。
  */
 class TodayFragment : Fragment() {
 
@@ -36,9 +37,6 @@ class TodayFragment : Fragment() {
 
     private var status: TodayStatus? = null
     private var todayAll: TodayAllResponse? = null
-
-    /** 我的当天评价（D-012） */
-    private var myEvaluation: EvaluationView? = null
 
     /** 设备时钟 - 服务器时钟 的偏移，用于倒计时校准 */
     private var serverOffsetMillis: Long = 0L
@@ -66,7 +64,9 @@ class TodayFragment : Fragment() {
         binding.btnOrder.setOnClickListener { submitOrder() }
         binding.btnCancel.setOnClickListener { confirmCancel() }
         binding.btnRefresh.setOnClickListener { refresh() }
-        binding.btnSubmitEval.setOnClickListener { submitEvaluation() }
+        binding.btnOpenChat.setOnClickListener {
+            startActivity(Intent(requireContext(), ChatActivity::class.java))
+        }
     }
 
     override fun onStart() {
@@ -112,47 +112,6 @@ class TodayFragment : Fragment() {
                 binding.tvTodayStats.text = e.message
                 binding.tvTodayNames.isVisible = false
             }
-        }
-        // 我的当天评价（D-012）
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                myEvaluation = repo.getMyEvaluation()
-                renderMyEvaluation()
-            } catch (e: ApiException) {
-                /* 评价加载失败不打扰主流程 */
-            }
-        }
-    }
-
-    /** 评价提交（D-012）：需当天已登记点餐；重复提交=修改 */
-    private fun submitEvaluation() {
-        val rating = binding.ratingBar.rating.toInt()
-        if (rating == 0) {
-            Toast.makeText(requireContext(), "请先选择星级", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val comment = binding.etEvalComment.text?.toString()?.trim().orEmpty()
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                myEvaluation = repo.putEvaluation(rating, comment)
-                renderMyEvaluation()
-                Toast.makeText(requireContext(), R.string.toast_eval_saved, Toast.LENGTH_SHORT).show()
-            } catch (e: ApiException) {
-                Toast.makeText(
-                    requireContext(),
-                    if (e.code == 2002) getString(R.string.toast_eval_need_order) else e.message,
-                    Toast.LENGTH_LONG,
-                ).show()
-            }
-        }
-    }
-
-    /** 回显我的评价 */
-    private fun renderMyEvaluation() {
-        val eval = myEvaluation ?: return
-        binding.ratingBar.rating = eval.rating.toFloat()
-        if (binding.etEvalComment.text.isNullOrBlank() && eval.comment.isNotEmpty()) {
-            binding.etEvalComment.setText(eval.comment)
         }
     }
 
