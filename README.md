@@ -1,5 +1,7 @@
 # lunch-order · 内网点餐系统
 
+[![CI](https://github.com/myTameLion/lunch-order/actions/workflows/ci.yml/badge.svg)](https://github.com/myTameLion/lunch-order/actions/workflows/ci.yml)
+
 > 📋 **维护者与新成员请优先阅读 [功能清单.md](功能清单.md)**——项目功能唯一权威清单（按模块编号），新增/变更功能时必须同步更新它。
 
 后台 + 员工 Web + 管理中台 + Android 客户端。仅限内网、无数据库（JSON 文件存储），采用「Monorepo + 共享契约变更驱动」的开发模式。
