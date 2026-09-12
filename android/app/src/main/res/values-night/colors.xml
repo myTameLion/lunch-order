@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="card_bg">#1F211F</color>
+    <color name="card_stroke">#3A3D3A</color>
+
+    <color name="banner_warn_bg">#4E342E</color>
+    <color name="banner_warn_text">#FFCCBC</color>
+    <color name="banner_ok_bg">#1B3C20</color>
+    <color name="banner_ok_text">#C8E6C9</color>
+</resources>

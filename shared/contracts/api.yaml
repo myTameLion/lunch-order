@@ -1,0 +1,588 @@
+openapi: 3.0.3
+info:
+  title: 内网点餐系统 REST API
+  version: 1.2.0
+  description: |
+    单一事实来源，任何模块不得私自偏离。
+    - 鉴权：除 POST /api/auth/login 外，均需 Header `Authorization: Bearer <JWT>`（HS256，有效期 7 天，payload 含 sub=loginName / role / pwdVer）。
+    - 全部时间基于 Asia/Shanghai；点餐窗口为闭区间 [14:00, 18:00]。
+    - 错误响应统一 {code, message}，见 error-codes.md；成功直接返回业务数据。
+    - token 存储：web/admin 存 cookie `lunch_token`（path=/，7 天，SameSite=Lax）；Android 存本地。
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: auth
+  - name: me
+  - name: orders
+  - name: admin
+
+paths:
+  /api/auth/login:
+    post:
+      tags: [auth]
+      summary: 登录（公开）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example: { loginName: admin, password: "admin123" }
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/Error'
+
+  /api/me:
+    get:
+      tags: [me]
+      summary: 当前用户信息
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserView'
+        '401':
+          $ref: '#/components/responses/Error'
+
+  /api/me/profile:
+    put:
+      tags: [me]
+      summary: 修改本人姓名 displayName
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [displayName]
+              properties:
+                displayName: { type: string, minLength: 1, maxLength: 20 }
+      responses:
+        '200':
+          description: 修改后的用户信息
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserView'
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+
+  /api/me/password:
+    put:
+      tags: [me]
+      summary: 修改本人密码（校验旧密码；成功后旧 token 失效并返回新 token）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChangeRequest'
+      responses:
+        '200':
+          description: 返回新 token
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token]
+                properties:
+                  token: { type: string }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+
+  /api/orders/today:
+    get:
+      tags: [orders]
+      summary: 我今天的点餐状态 + 窗口信息（客户端据此渲染界面）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodayStatus'
+        '401': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [orders]
+      summary: 登记/修改本人今日点餐（窗口校验，管理员不受限）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [spicy]
+              properties:
+                spicy: { type: boolean }
+      responses:
+        '200':
+          description: 点餐记录
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderView'
+        '401': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [orders]
+      summary: 取消本人今日点餐（窗口校验）
+      responses:
+        '204': { description: 已取消 }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /api/me/orders:
+    get:
+      tags: [me]
+      summary: 我的历史点餐记录（D-011）
+      parameters:
+        - { name: from, in: query, required: false, schema: { type: string, format: date }, description: "缺省=最近 30 天" }
+        - { name: to, in: query, required: false, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyOrdersResponse'
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+
+  /api/orders/today/evaluation:
+    get:
+      tags: [orders]
+      summary: 我当天的点餐评价（D-012）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [evaluation]
+                properties:
+                  evaluation:
+                    nullable: true
+                    $ref: '#/components/schemas/EvaluationView'
+        '401': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [orders]
+      summary: 提交/修改当天评价（需当天已登记点餐；重复提交=修改，仅保留最后一次）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rating]
+              properties:
+                rating: { type: integer, minimum: 1, maximum: 5 }
+                comment: { type: string, maxLength: 100 }
+      responses:
+        '200':
+          description: 保存后的评价
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationView'
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /api/orders/today/all:
+    get:
+      tags: [orders]
+      summary: 当天全部点餐名单与统计（所有登录用户，D-008；30 秒轮询即实时）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TodayAllResponse'
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+
+  /api/admin/settings/window:
+    get:
+      tags: [admin]
+      summary: 查看当前点餐窗口（D-009）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WindowSettings'
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [admin]
+      summary: 设置点餐窗口（写入 config.json；环境变量覆盖仍优先）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [start, end]
+              properties:
+                start: { type: string, example: "14:00" }
+                end: { type: string, example: "18:00" }
+      responses:
+        '200':
+          description: 保存后的窗口
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WindowSettings'
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+
+  /api/admin/users/bulk:
+    post:
+      tags: [admin]
+      summary: 批量创建用户（逐条校验，失败条目不影响成功条目）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [users]
+              properties:
+                users:
+                  type: array
+                  items:
+                    type: object
+                    required: [loginName, displayName]
+                    properties:
+                      loginName: { type: string, pattern: '^[a-zA-Z0-9_]{3,20}$' }
+                      displayName: { type: string, minLength: 1, maxLength: 20 }
+                      password: { type: string, minLength: 6, maxLength: 64, description: "缺省 123456" }
+      responses:
+        '200':
+          description: 创建结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkCreateResponse'
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+
+  /api/admin/users/export:
+    get:
+      tags: [admin]
+      summary: 导出全部账户 xlsx（含可逆加密存储的密码，D-010；仅内网信任环境使用）
+      responses:
+        '200':
+          description: xlsx 二进制流
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+
+  /api/admin/evaluations:
+    get:
+      tags: [admin]
+      summary: 按天查看全员点餐评价（每用户仅保留最后一次，D-012）
+      parameters:
+        - { name: date, in: query, required: true, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationsResponse'
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+
+  /api/admin/summary:
+    get:
+      tags: [admin]
+      summary: 区间统计（ADMIN）
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date }, description: "yyyy-MM-dd，含当天" }
+        - { name: to, in: query, required: true, schema: { type: string, format: date }, description: "yyyy-MM-dd，含当天；from<=to，跨度<=366天" }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RangeSummary'
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+
+  /api/admin/export:
+    get:
+      tags: [admin]
+      summary: 导出区间点餐 Excel（.xlsx，两个 Sheet：点餐明细 / 人员汇总）（ADMIN）
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: xlsx 二进制流
+          headers:
+            Content-Disposition:
+              schema: { type: string }
+              description: "attachment; filename=lunch_from_to.xlsx; filename*=UTF-8''...（中文文件名编码）"
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+
+  /api/admin/users:
+    get:
+      tags: [admin]
+      summary: 用户列表（ADMIN，不含密码字段）
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [users]
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserView'
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [admin]
+      summary: 创建用户（ADMIN）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserView'
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+
+components:
+  responses:
+    Error:
+      description: 统一错误体
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    LoginRequest:
+      type: object
+      required: [loginName, password]
+      properties:
+        loginName: { type: string, example: admin }
+        password: { type: string, example: "admin123" }
+    LoginResponse:
+      type: object
+      required: [token, loginName, displayName, role]
+      properties:
+        token: { type: string }
+        loginName: { type: string, example: admin }
+        displayName: { type: string, example: 管理员 }
+        role: { type: string, enum: [USER, ADMIN] }
+    UserView:
+      type: object
+      required: [loginName, displayName, role, createdAt]
+      properties:
+        loginName: { type: string }
+        displayName: { type: string }
+        role: { type: string, enum: [USER, ADMIN] }
+        createdAt: { type: string, example: "2026-09-05T10:00:00+08:00" }
+    PasswordChangeRequest:
+      type: object
+      required: [oldPassword, newPassword]
+      properties:
+        oldPassword: { type: string }
+        newPassword: { type: string, minLength: 6, maxLength: 64 }
+    WindowInfo:
+      type: object
+      required: [start, end, open, serverTime]
+      properties:
+        start: { type: string, example: "14:00" }
+        end: { type: string, example: "18:00" }
+        open: { type: boolean, description: 当前是否在窗口内 }
+        serverTime: { type: string, example: "2026-09-05T15:00:00+08:00" }
+    TodayStatus:
+      type: object
+      required: [date, window, myOrder]
+      properties:
+        date: { type: string, format: date, example: "2026-09-05" }
+        window:
+          $ref: '#/components/schemas/WindowInfo'
+        myOrder:
+          nullable: true
+          $ref: '#/components/schemas/MyOrderView'
+    MyOrderView:
+      type: object
+      required: [spicy, orderedAt]
+      properties:
+        spicy: { type: boolean }
+        orderedAt: { type: string, example: "2026-09-05T14:23:05+08:00" }
+    OrderView:
+      type: object
+      required: [loginName, displayName, spicy, orderedAt, updated]
+      properties:
+        loginName: { type: string }
+        displayName: { type: string }
+        spicy: { type: boolean }
+        orderedAt: { type: string }
+        updated: { type: boolean, description: 是否为修改既有记录（false=首次登记） }
+    TodayAllResponse:
+      type: object
+      required: [date, window, total, spicy, nonSpicy, orders]
+      properties:
+        date: { type: string, format: date }
+        window:
+          $ref: '#/components/schemas/WindowInfo'
+        total: { type: integer, description: 去重 loginName 数 }
+        spicy: { type: integer }
+        nonSpicy: { type: integer }
+        orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderView'
+    DailySummary:
+      type: object
+      required: [date, count, spicy, nonSpicy]
+      properties:
+        date: { type: string, format: date }
+        count: { type: integer, description: 当日点餐人数 }
+        spicy: { type: integer }
+        nonSpicy: { type: integer }
+    UserSummary:
+      type: object
+      required: [loginName, displayName, days, spicyDays, nonSpicyDays]
+      properties:
+        loginName: { type: string }
+        displayName: { type: string }
+        days: { type: integer, description: 区间内点餐天数 }
+        spicyDays: { type: integer }
+        nonSpicyDays: { type: integer }
+    RangeSummary:
+      type: object
+      required: [from, to, totalOrders, totalSpicy, totalNonSpicy, daily, perUser]
+      properties:
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        totalOrders: { type: integer }
+        totalSpicy: { type: integer }
+        totalNonSpicy: { type: integer }
+        daily:
+          type: array
+          description: 区间内每一天一条（含无点餐的 0 值天），按日期升序
+          items:
+            $ref: '#/components/schemas/DailySummary'
+        perUser:
+          type: array
+          description: 全部用户（含 0 单用户），按 days 降序、loginName 升序
+          items:
+            $ref: '#/components/schemas/UserSummary'
+    CreateUserRequest:
+      type: object
+      required: [loginName, displayName, password]
+      properties:
+        loginName: { type: string, pattern: '^[a-zA-Z0-9_]{3,20}$' }
+        displayName: { type: string, minLength: 1, maxLength: 20 }
+        password: { type: string, minLength: 6, maxLength: 64 }
+        role: { type: string, enum: [USER, ADMIN], default: USER }
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: integer, example: 2001 }
+        message: { type: string }
+    WindowSettings:
+      type: object
+      required: [orderWindowStart, orderWindowEnd]
+      properties:
+        orderWindowStart: { type: string, example: "14:00" }
+        orderWindowEnd: { type: string, example: "18:00" }
+    BulkCreateResponse:
+      type: object
+      required: [created, failed]
+      properties:
+        created: { type: integer }
+        failed:
+          type: array
+          items:
+            type: object
+            required: [loginName, reason]
+            properties:
+              loginName: { type: string }
+              reason: { type: string }
+    MyOrdersResponse:
+      type: object
+      required: [from, to, records, totalDays, spicyDays, nonSpicyDays]
+      properties:
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        records:
+          type: array
+          items:
+            type: object
+            required: [date, spicy, orderedAt]
+            properties:
+              date: { type: string, format: date }
+              spicy: { type: boolean }
+              orderedAt: { type: string }
+        totalDays: { type: integer }
+        spicyDays: { type: integer }
+        nonSpicyDays: { type: integer }
+    EvaluationView:
+      type: object
+      required: [rating, comment, ratedAt]
+      properties:
+        rating: { type: integer, minimum: 1, maximum: 5 }
+        comment: { type: string }
+        ratedAt: { type: string }
+    EvaluationsResponse:
+      type: object
+      required: [date, count, avgRating, evaluations]
+      properties:
+        date: { type: string, format: date }
+        count: { type: integer, description: 评价人数 }
+        avgRating: { type: number, description: 平均分，1 位小数；无人评价时为 0 }
+        evaluations:
+          type: array
+          items:
+            type: object
+            required: [loginName, displayName, rating, comment, ratedAt]
+            properties:
+              loginName: { type: string }
+              displayName: { type: string }
+              rating: { type: integer, minimum: 1, maximum: 5 }
+              comment: { type: string }
+              ratedAt: { type: string }

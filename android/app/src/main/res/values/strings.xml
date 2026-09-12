@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">内网点餐系统</string>
+
+    <!-- 登录页 -->
+    <string name="login_subtitle">欢迎使用内网点餐系统</string>
+    <string name="hint_login_name">登录名</string>
+    <string name="hint_password">密码</string>
+    <string name="btn_login">登 录</string>
+    <string name="error_empty_login_name">请输入登录名</string>
+    <string name="error_empty_password">请输入密码</string>
+    <string name="login_failed_wrong_credentials">登录名或密码错误</string>
+    <string name="login_server_toggle">服务器设置 ▾</string>
+    <string name="login_server_toggle_hide">收起服务器设置 ▴</string>
+
+    <!-- 主界面 -->
+    <string name="greeting">你好，%1$s</string>
+    <string name="role_admin">管理员</string>
+    <string name="role_user">普通用户</string>
+    <string name="nav_today">今日点餐</string>
+    <string name="nav_mine">我的</string>
+    <string name="nav_settings">设置</string>
+
+    <!-- 今日点餐 -->
+    <string name="today_title">今日点餐</string>
+    <string name="today_title_with_date">今日点餐 · %1$s</string>
+    <string name="window_label">点餐窗口：%1$s – %2$s</string>
+    <string name="status_registered">已登记：%1$s</string>
+    <string name="status_not_registered">今日尚未登记点餐</string>
+    <string name="spicy_yes">要辣</string>
+    <string name="spicy_no">不要辣</string>
+    <string name="banner_not_started">今日登记未开始（%1$s 开始）</string>
+    <string name="banner_closed">已截止（%1$s）</string>
+    <string name="countdown_to_end">距登记截止还有 %1$s</string>
+    <string name="countdown_to_start">距登记开始还有 %1$s</string>
+    <string name="countdown_over">今日点餐登记已结束</string>
+    <string name="section_my_order">今天的点餐</string>
+    <string name="section_today_all">今日点餐情况</string>
+    <string name="section_evaluation">今日点餐评价</string>
+    <string name="hint_eval_comment">可选：聊聊今天的饭菜（100 字以内）</string>
+    <string name="btn_submit_eval">提交评价</string>
+    <string name="toast_eval_saved">评价已提交</string>
+    <string name="toast_eval_need_order">请先登记今天的点餐，再进行评价</string>
+    <string name="btn_history">查看历史点餐</string>
+    <string name="history_title">我的历史点餐</string>
+    <string name="history_empty">该时间段内没有点餐记录</string>
+    <string name="today_stats_line">已订 %1$d 份 · 要辣 %2$d 份 · 不要辣 %3$d 份</string>
+    <string name="today_stats_names">名单：%1$s</string>
+    <string name="btn_register_order">登记点餐</string>
+    <string name="btn_modify_order">修改点餐</string>
+    <string name="btn_cancel_order">取消点餐</string>
+    <string name="btn_refresh">刷新</string>
+    <string name="toast_registered">已登记今日点餐</string>
+    <string name="toast_modified">已修改</string>
+    <string name="toast_cancelled">已取消今日点餐</string>
+    <string name="dialog_cancel_title">取消点餐</string>
+    <string name="dialog_cancel_message">确定要取消今天的点餐吗？</string>
+    <string name="btn_confirm">确认</string>
+    <string name="btn_cancel">取消</string>
+    <string name="error_select_spicy">请先选择要辣 / 不要辣</string>
+
+    <!-- 我的 -->
+    <string name="mine_section_account">账号信息</string>
+    <string name="label_login_name">登录名</string>
+    <string name="label_login_name_readonly">登录名（不可修改）</string>
+    <string name="hint_display_name">姓名</string>
+    <string name="btn_save_profile">保存姓名</string>
+    <string name="toast_profile_saved">姓名已更新</string>
+    <string name="error_empty_display_name">姓名不能为空</string>
+    <string name="mine_section_password">修改密码</string>
+    <string name="hint_old_password">旧密码</string>
+    <string name="hint_new_password">新密码</string>
+    <string name="hint_confirm_password">确认新密码</string>
+    <string name="btn_change_password">修改密码</string>
+    <string name="toast_password_changed">密码修改成功</string>
+    <string name="error_password_too_short">新密码至少 6 位</string>
+    <string name="error_password_confirm_mismatch">两次输入的新密码不一致</string>
+    <string name="error_empty_old_password">请输入旧密码</string>
+    <string name="btn_logout">退出登录</string>
+    <string name="dialog_logout_title">退出登录</string>
+    <string name="dialog_logout_message">确定要退出当前账号吗？</string>
+
+    <!-- 设置 -->
+    <string name="settings_section_server">服务器</string>
+    <string name="hint_server_url">服务器地址</string>
+    <string name="btn_save_server">保存</string>
+    <string name="btn_test_connection">测试连接</string>
+    <string name="toast_server_saved">服务器地址已保存</string>
+    <string name="error_server_url_invalid">服务器地址格式不正确</string>
+    <string name="test_connection_ok">连接成功</string>
+    <string name="test_connection_fail">连接失败：%1$s</string>
+    <string name="settings_section_notification">每日提醒</string>
+    <string name="switch_notify">每日提醒</string>
+    <string name="notify_time_label">提醒时间</string>
+    <string name="btn_pick_time">修改</string>
+    <string name="exact_alarm_hint">未授予“闹钟和提醒”精确闹钟权限，提醒可能延迟。点此前往系统设置授权</string>
+    <string name="toast_exact_alarm_fallback">已改为非精确闹钟，可点击下方提示前往系统设置授权，保证准点提醒</string>
+
+    <!-- 提醒通知 -->
+    <string name="reminder_channel_name">午餐点餐提醒</string>
+    <string name="reminder_channel_desc">每天定时提醒登记午餐点餐</string>
+    <string name="reminder_title">午餐点餐提醒</string>
+    <string name="reminder_body">今天需要点餐吗？请在 18:00 前登记</string>
+
+    <!-- 通用 -->
+    <string name="loading">加载中…</string>
+    <string name="error_network">网络错误：%1$s</string>
+    <string name="error_request_failed">请求失败（HTTP %1$d）</string>
+    <string name="error_empty_response">响应内容为空</string>
+    <string name="error_unexpected">请求异常：%1$s</string>
+    <string name="notification_permission_hint">未授予通知权限，收不到点餐提醒，请在系统设置中允许通知</string>
+</resources>

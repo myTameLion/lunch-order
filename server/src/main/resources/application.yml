@@ -1,0 +1,15 @@
+server:
+  port: ${LUNCH_PORT:8080}
+
+spring:
+  application:
+    name: lunch-server
+
+lunch:
+  data-dir: ${LUNCH_DATA_DIR:./data}
+  jwt-secret: ${LUNCH_JWT_SECRET:lunch-order-intranet-dev-secret-change-me-1234567890}
+  # 账户密码导出的可逆加密密钥（D-010），生产必须注入
+  export-key: ${LUNCH_EXPORT_KEY:}
+  # 非空时覆盖 config.json 的点餐窗口（HH:mm）
+  window-start: ${LUNCH_WINDOW_START:}
+  window-end: ${LUNCH_WINDOW_END:}

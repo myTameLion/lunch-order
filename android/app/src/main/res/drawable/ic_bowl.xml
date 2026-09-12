@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 碗（实心半圆） -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M4,11h16c0,4.418 -3.582,8 -8,8s-8,-3.582 -8,-8z" />
+    <!-- 蒸汽两道 -->
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:pathData="M9.2,4.5L9.2,8" />
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:pathData="M14.8,4.5L14.8,8" />
+    <!-- 托盘线 -->
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:pathData="M5,20.5L19,20.5" />
+</vector>

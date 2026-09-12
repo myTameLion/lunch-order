@@ -1,0 +1,16 @@
+.gradle/
+build/
+node_modules/
+dist/
+data/
+local.properties
+*.iml
+.idea/
+.DS_Store
+server/src/main/resources/static/
+.kotlin/
+captures/
+*.log
+nohup.out
+AGENTS.md
+更新时间线.md
