@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -17,6 +18,7 @@ import com.intranet.lunchorder.R
 import com.intranet.lunchorder.alarm.ReminderScheduler
 import com.intranet.lunchorder.data.api.ApiException
 import com.intranet.lunchorder.data.api.AuthEvents
+import com.intranet.lunchorder.data.model.NoticeItem
 import com.intranet.lunchorder.data.prefs.PrefsStore
 import com.intranet.lunchorder.data.repo.LunchRepository
 import com.intranet.lunchorder.data.prefs.PrefsStoreProvider
@@ -27,13 +29,17 @@ import com.intranet.lunchorder.ui.today.TodayFragment
 import kotlinx.coroutines.launch
 
 /**
- * 主界面：顶部显示姓名，底部三 Tab（今日点餐 / 我的 / 设置）。
- * 收到全局 401 登出事件后跳回登录页。
+ * 主界面：顶部显示姓名与重要通知横幅（折叠显示最新一条，可展开全部，D-015），
+ * 底部三 Tab（今日点餐 / 我的 / 设置）。收到全局 401 登出事件后跳回登录页。
  */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private val prefs: PrefsStore by lazy { PrefsStoreProvider.get(this) }
+
+    /** 重要通知（D-015） */
+    private var notices: List<NoticeItem> = emptyList()
+    private var noticeExpanded = false
 
     private val notifPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -75,6 +81,13 @@ class MainActivity : AppCompatActivity() {
         // 通知权限（API 33+ 运行时请求）
         requestNotificationPermissionIfNeeded()
 
+        // 重要通知（D-015）：顶部突出展示，折叠显示最新一条
+        binding.tvNoticeToggle.setOnClickListener {
+            noticeExpanded = !noticeExpanded
+            renderNotices()
+        }
+        loadNotices()
+
         // App 启动后同步服务端定时通知配置（D-014）并重新注册每日提醒
         lifecycleScope.launch {
             try {
@@ -86,6 +99,40 @@ class MainActivity : AppCompatActivity() {
                 /* 同步失败保持本地配置 */
             }
             ReminderScheduler.schedule(this@MainActivity)
+        }
+    }
+
+    /** 拉取重要通知（失败静默，不打扰主流程） */
+    private fun loadNotices() {
+        lifecycleScope.launch {
+            try {
+                notices = LunchRepository.create(prefs).getNotices().notices
+                renderNotices()
+            } catch (_: ApiException) {
+                binding.noticeCard.isVisible = false
+            }
+        }
+    }
+
+    /** 折叠：只显示最新一条；展开：显示全部（最新在前） */
+    private fun renderNotices() {
+        val latest = notices.firstOrNull()
+        if (latest == null) {
+            binding.noticeCard.isVisible = false
+            return
+        }
+        binding.noticeCard.isVisible = true
+        binding.tvNoticeTitle.text = latest.title
+        binding.tvNoticeLatest.text = latest.content
+        if (noticeExpanded) {
+            binding.tvNoticeToggle.text = getString(R.string.notice_collapse)
+            binding.tvNoticeAll.isVisible = true
+            binding.tvNoticeAll.text = notices.joinToString("\n\n") { n ->
+                "📢 ${n.title}\n${n.content}\n—— ${n.createdAt.take(10)} · ${n.createdBy}"
+            }
+        } else {
+            binding.tvNoticeToggle.text = getString(R.string.notice_expand_all, notices.size)
+            binding.tvNoticeAll.isVisible = false
         }
     }
 

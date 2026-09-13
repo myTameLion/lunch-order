@@ -171,6 +171,20 @@ class ApiServiceTest {
     }
 
     @Test
+    fun `重要通知解析（D-015，最新在前）`() = runTest {
+        server.enqueue(
+            MockResponse().setResponseCode(200)
+                .setBody("""{"notices":[
+                    {"id":2,"title":"新功能","content":"聊天频道上线啦","createdAt":"2026-09-11T10:00:00+08:00","createdBy":"admin"},
+                    {"id":1,"title":"系统维护","content":"周日停机","createdAt":"2026-09-10T10:00:00+08:00","createdBy":"admin"}]}"""),
+        )
+        val resp = repo.getNotices()
+        assertEquals(2, resp.notices.size)
+        assertEquals("新功能", resp.notices[0].title)
+        assertEquals("/api/notices", server.takeRequest().path)
+    }
+
+    @Test
     fun `putOrder 成功解析 updated`() = runTest {
         server.enqueue(
             MockResponse().setResponseCode(200)

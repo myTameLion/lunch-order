@@ -3,6 +3,7 @@ import { ElMessage } from 'element-plus'
 import { http } from './http'
 import type {
   BulkCreateResponse,
+  NoticeItem,
   BulkUserItem,
   ChatResponse,
   CreateUserRequest,
@@ -118,4 +119,23 @@ export async function getNotifySettings(): Promise<NotifySettings> {
 export async function updateNotifySettings(notifyTime: string, notifyTitle: string, notifyContent: string): Promise<NotifySettings> {
   const { data } = await http.put<NotifySettings>('/admin/settings/notify', { notifyTime, notifyTitle, notifyContent })
   return data
+}
+
+// ── v1.4.0 重要通知（D-015） ──
+
+/** GET /api/notices 通知列表（最新在前） */
+export async function getNoticeList(): Promise<NoticeItem[]> {
+  const { data } = await http.get<NoticesResponse>('/notices')
+  return data.notices
+}
+
+/** POST /api/admin/notices 发布重要通知 */
+export async function createNotice(title: string, content: string): Promise<NoticeItem> {
+  const { data } = await http.post<NoticeItem>('/admin/notices', { title, content })
+  return data
+}
+
+/** DELETE /api/admin/notices/{id} 删除重要通知 */
+export async function deleteNotice(id: number): Promise<void> {
+  await http.delete(`/admin/notices/${id}`)
 }

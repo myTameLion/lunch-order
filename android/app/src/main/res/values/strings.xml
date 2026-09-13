@@ -44,6 +44,9 @@
     <string name="btn_send">发送</string>
     <string name="toast_chat_sent">已发送</string>
     <string name="toast_chat_empty">请输入消息内容</string>
+    <string name="notice_icon">📢</string>
+    <string name="notice_expand_all">展开全部（%1$d）</string>
+    <string name="notice_collapse">收起</string>
     <string name="btn_history">查看历史点餐</string>
     <string name="history_title">我的历史点餐</string>
     <string name="history_empty">该时间段内没有点餐记录</string>

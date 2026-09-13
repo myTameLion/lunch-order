@@ -10,6 +10,8 @@ import com.lunchorder.domain.AppConfigJson
 import com.lunchorder.domain.DayMessages
 import com.lunchorder.domain.DayOrders
 import com.lunchorder.domain.ChatMessage
+import com.lunchorder.domain.NoticeItem
+import com.lunchorder.domain.NoticesFile
 import com.lunchorder.domain.OrderRecord
 import com.lunchorder.domain.User
 import com.lunchorder.domain.UsersFile
@@ -51,6 +53,7 @@ class DataStore(props: LunchProperties, private val vault: PasswordVault? = null
     private fun dayPath(date: LocalDate): Path = ordersDir().resolve("$date.json")
     private fun messagesDir(): Path = dataDir.resolve("messages")
     private fun messagePath(date: LocalDate): Path = messagesDir().resolve("$date.json")
+    private val noticesPath: Path get() = dataDir.resolve("notices.json")
 
     init {
         // 构造时自举（幂等）：Spring 与测试环境行为一致
@@ -159,6 +162,22 @@ class DataStore(props: LunchProperties, private val vault: PasswordVault? = null
 
     fun writeMessages(day: DayMessages) = withLock {
         atomicWrite(messagePath(LocalDate.parse(day.date)), mapper.writeValueAsString(day))
+    }
+
+    // ---------- notices.json（D-015 重要通知） ----------
+
+    fun readNotices(): NoticesFile {
+        if (!Files.exists(noticesPath)) return NoticesFile()
+        return try {
+            mapper.readValue(noticesPath.toFile(), NoticesFile::class.java)
+        } catch (e: Exception) {
+            log.warn("notices.json 无法解析，按空处理（下次保存会自愈）", e)
+            NoticesFile()
+        }
+    }
+
+    fun writeNotices(file: NoticesFile) = withLock {
+        atomicWrite(noticesPath, mapper.writeValueAsString(file))
     }
 
     // ---------- config.json ----------

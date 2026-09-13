@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
@@ -38,6 +39,91 @@
             android:textColor="@color/banner_ok_text"
             android:textSize="12sp" />
     </LinearLayout>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/noticeCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="12dp"
+        android:visibility="gone"
+        app:cardCornerRadius="10dp"
+        app:cardElevation="0dp"
+        app:strokeColor="@color/banner_warn_text"
+        app:strokeWidth="1dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="6dp"
+                    android:text="@string/notice_icon"
+                    android:textSize="16sp" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvNoticeTitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:textColor="@color/banner_warn_text"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        tools:text="周五聚餐报名" />
+
+                    <TextView
+                        android:id="@+id/tvNoticeLatest"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:maxLines="2"
+                        android:ellipsize="end"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="13sp"
+                        tools:text="本周五聚餐，请提前报名" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvNoticeToggle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:padding="4dp"
+                    android:text="@string/notice_expand_all"
+                    android:textColor="?attr/colorPrimary"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvNoticeAll"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_card"
+                android:padding="10dp"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="13sp"
+                android:visibility="gone"
+                tools:visibility="visible" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/fragmentContainer"

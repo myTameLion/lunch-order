@@ -127,6 +127,21 @@ data class NotifySettings(
     val notifyContent: String,
 )
 
+/** D-015：重要通知（折叠显示最新一条，可展开全部） */
+@Serializable
+data class NoticeItem(
+    val id: Long,
+    val title: String,
+    val content: String,
+    val createdAt: String,
+    val createdBy: String,
+)
+
+@Serializable
+data class NoticesResponse(
+    val notices: List<NoticeItem> = emptyList(),
+)
+
 /** D-011：我的历史点餐 */
 @Serializable
 data class MyOrderHistoryItem(

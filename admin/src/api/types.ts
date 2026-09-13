@@ -140,3 +140,17 @@ export interface NotifySettings {
   notifyTitle: string
   notifyContent: string
 }
+
+// ── v1.4.0 ──
+
+export interface NoticeItem {
+  id: number
+  title: string
+  content: string
+  createdAt: string
+  createdBy: string
+}
+
+export interface NoticesResponse {
+  notices: NoticeItem[]
+}

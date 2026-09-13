@@ -67,6 +67,19 @@ export interface ChatResponse {
   messages: ChatMessage[]
 }
 
+/** 重要通知（D-015；折叠显示最新一条，可展开全部） */
+export interface NoticeItem {
+  id: number
+  title: string
+  content: string
+  createdAt: string
+  createdBy: string
+}
+
+export interface NoticesResponse {
+  notices: NoticeItem[]
+}
+
 /** 我的历史点餐（D-011） */
 export interface MyOrdersResponse {
   from: string

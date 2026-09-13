@@ -11,6 +11,7 @@ import com.intranet.lunchorder.data.model.ChatResponse
 import com.intranet.lunchorder.data.model.LoginRequest
 import com.intranet.lunchorder.data.model.LoginResponse
 import com.intranet.lunchorder.data.model.MyOrdersResponse
+import com.intranet.lunchorder.data.model.NoticesResponse
 import com.intranet.lunchorder.data.model.NotifySettings
 import com.intranet.lunchorder.data.model.OrderRequest
 import com.intranet.lunchorder.data.model.OrderView
@@ -53,6 +54,9 @@ class LunchRepository(
 
     /** 定时通知设置同步（D-014） */
     suspend fun getNotifySettings(): NotifySettings = bodyOf(call { api.getNotifySettings() })
+
+    /** 重要通知（D-015，最新在前） */
+    suspend fun getNotices(): NoticesResponse = bodyOf(call { api.getNotices() })
 
     suspend fun putOrder(spicy: Boolean): OrderView = bodyOf(call { api.putOrder(OrderRequest(spicy)) })
 

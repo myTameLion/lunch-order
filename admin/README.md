@@ -1,4 +1,4 @@
-# lunch-admin · 管理中台（契约版本: 1.3.0）
+# lunch-admin · 管理中台（契约版本: 1.4.0）
 
 Vue 3 + TypeScript + Vite 5 + Element Plus + ECharts 5。管理员看今日点餐概况、任意时间段统计图表、导出 Excel、用户管理。
 

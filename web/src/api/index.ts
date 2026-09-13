@@ -1,9 +1,13 @@
 import { http } from './http'
-import type { ChatMessage, ChatResponse, MyOrdersResponse, TodayAllResponse, TodayStatus, UserView } from './types'
+import type { ChatMessage, ChatResponse, MyOrdersResponse, NoticesResponse, TodayAllResponse, TodayStatus, UserView } from './types'
 
 export const api = {
   login(loginName: string, password: string) {
     return http.post<LoginResult>('/api/auth/login', { loginName, password }).then((r) => r.data)
+  },
+  /** 重要通知（D-015；最新在前） */
+  getNotices() {
+    return http.get<NoticesResponse>('/api/notices').then((r) => r.data)
   },
   getToday() {
     return http.get<TodayStatus>('/api/orders/today').then((r) => r.data)

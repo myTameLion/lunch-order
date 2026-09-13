@@ -25,6 +25,17 @@ data class ChatMessage(
 
 data class DayMessages(val date: String, val messages: MutableList<ChatMessage> = mutableListOf())
 
+/** notices.json 中的一条重要通知（D-015；自增 id，展示按 id 倒序=最新在前） */
+data class NoticeItem(
+    val id: Long,
+    val title: String,
+    val content: String,
+    val createdAt: String,
+    val createdBy: String,
+)
+
+data class NoticesFile(val notices: MutableList<NoticeItem> = mutableListOf())
+
 /** orders/YYYY-MM-DD.json 中的一条点餐记录；时间一律 ISO-8601 带 +08:00 偏移的字符串 */
 data class OrderRecord(
     val loginName: String,

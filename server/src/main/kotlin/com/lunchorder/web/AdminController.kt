@@ -2,6 +2,7 @@ package com.lunchorder.web
 
 import com.lunchorder.exception.BusinessException
 import com.lunchorder.service.ChatService
+import com.lunchorder.service.NoticeService
 import com.lunchorder.service.SettingsService
 import com.lunchorder.service.SummaryService
 import com.lunchorder.service.UserService
@@ -10,12 +11,15 @@ import com.lunchorder.web.dto.BulkCreateResponse
 import com.lunchorder.web.dto.ChatResponse
 import com.lunchorder.web.dto.CreateUserRequest
 import com.lunchorder.web.dto.NotifySettings
+import com.lunchorder.web.dto.NoticeCreateRequest
 import com.lunchorder.web.dto.NotifyUpdateRequest
 import com.lunchorder.web.dto.RangeSummary
 import com.lunchorder.web.dto.UserView
 import com.lunchorder.web.dto.UsersResponse
 import com.lunchorder.web.dto.WindowSettings
+import com.lunchorder.web.dto.NoticesResponse
 import com.lunchorder.web.dto.WindowUpdateRequest
+import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.GetMapping
@@ -25,6 +29,8 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RestController
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -36,6 +42,7 @@ class AdminController(
     private val summaryService: SummaryService,
     private val userService: UserService,
     private val chatService: ChatService,
+    private val noticeService: NoticeService,
     private val settingsService: SettingsService,
     private val windowService: com.lunchorder.service.WindowService,
 ) {
@@ -88,6 +95,19 @@ class AdminController(
     @GetMapping("/chat")
     fun chat(@RequestParam date: String): ChatResponse = chatService.adminList(parseDate(date))
 
+    /** 重要通知：列表 / 发布 / 删除（D-015） */
+    @GetMapping("/notices")
+    fun notices(): NoticesResponse = NoticesResponse(noticeService.list())
+
+    @PostMapping("/notices")
+    @ResponseStatus(HttpStatus.CREATED)
+    fun createNotice(request: HttpServletRequest, @RequestBody req: NoticeCreateRequest): com.lunchorder.domain.NoticeItem =
+        noticeService.create(req.title, req.content, request.admin().loginName)
+
+    @DeleteMapping("/notices/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun deleteNotice(@PathVariable id: Long) = noticeService.delete(id)
+
     /** 定时通知设置（D-014） */
     @GetMapping("/settings/notify")
     fun getNotify(): NotifySettings = settingsService.notifySettings()
@@ -95,6 +115,10 @@ class AdminController(
     @PutMapping("/settings/notify")
     fun updateNotify(@RequestBody req: NotifyUpdateRequest): NotifySettings =
         settingsService.updateNotify(req.notifyTime, req.notifyTitle, req.notifyContent)
+
+    private fun HttpServletRequest.admin(): com.lunchorder.domain.User =
+        this.getAttribute(com.lunchorder.auth.AuthFilter.ATTR_USER) as? com.lunchorder.domain.User
+            ?: throw IllegalStateException("鉴权过滤器未注入用户")
 
     private fun parseDate(s: String): LocalDate =
         runCatching { LocalDate.parse(s) }

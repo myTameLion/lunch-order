@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import NoticeBanner from './components/NoticeBanner.vue'
 import { userStore, logout } from './store/user'
 import { getToken } from './utils/cookie'
 
@@ -22,6 +23,7 @@ onMounted(async () => {
         <el-button link type="primary" data-test="logout" @click="logout">退出登录</el-button>
       </div>
     </el-header>
+    <NoticeBanner />
     <el-main class="main">
       <router-view />
     </el-main>

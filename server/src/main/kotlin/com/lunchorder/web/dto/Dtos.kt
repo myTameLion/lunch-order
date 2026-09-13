@@ -78,3 +78,8 @@ data class ChatPostRequest(val content: String = "")
 data class ChatResponse(val date: String, val count: Int, val messages: List<com.lunchorder.domain.ChatMessage>)
 data class NotifySettings(val notifyTime: String, val notifyTitle: String, val notifyContent: String)
 data class NotifyUpdateRequest(val notifyTime: String = "", val notifyTitle: String = "", val notifyContent: String = "")
+
+// ── v1.4.0 ──
+
+data class NoticeCreateRequest(val title: String = "", val content: String = "")
+data class NoticesResponse(val notices: List<com.lunchorder.domain.NoticeItem>)

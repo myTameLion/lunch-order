@@ -6,6 +6,8 @@ import com.intranet.lunchorder.data.model.ChatResponse
 import com.intranet.lunchorder.data.model.LoginRequest
 import com.intranet.lunchorder.data.model.LoginResponse
 import com.intranet.lunchorder.data.model.MyOrdersResponse
+import com.intranet.lunchorder.data.model.NoticeItem
+import com.intranet.lunchorder.data.model.NoticesResponse
 import com.intranet.lunchorder.data.model.NotifySettings
 import com.intranet.lunchorder.data.model.OrderRequest
 import com.intranet.lunchorder.data.model.OrderView
@@ -67,6 +69,10 @@ interface ApiService {
     /** 定时通知设置同步（D-014） */
     @GET("api/settings/notify")
     suspend fun getNotifySettings(): Response<NotifySettings>
+
+    /** 重要通知（D-015，最新在前） */
+    @GET("api/notices")
+    suspend fun getNotices(): Response<NoticesResponse>
 
     @PUT("api/orders/today")
     suspend fun putOrder(@Body body: OrderRequest): Response<OrderView>

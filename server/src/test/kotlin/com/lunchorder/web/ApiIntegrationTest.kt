@@ -435,6 +435,39 @@ class ApiIntegrationTest {
     }
 
     @Test
+    fun `重要通知 - 发布 列表倒序 删除 权限（D-015）`() {
+        setTestDate("2026-09-20")
+        val admin = login("admin", "admin123")
+        val user = login("zhangsan", "123456")
+
+        // 发布两条（id 自增，后发的在前）
+        call<Map<*, *>>(HttpMethod.POST, "/api/admin/notices", token = admin, body = mapOf("title" to "系统维护", "content" to "周日 22:00 停机维护"))
+        call<Map<*, *>>(HttpMethod.POST, "/api/admin/notices", token = admin, body = mapOf("title" to "新功能", "content" to "聊天频道上线啦"))
+
+        // 普通用户查看：按 id 倒序 = 最新在前
+        val list = call<Map<*, *>>(HttpMethod.GET, "/api/notices", token = user)
+        assertEquals(HttpStatus.OK, list.statusCode)
+        val notices = list.body!!["notices"] as List<*>
+        assertTrue(notices.size >= 2)
+        assertEquals("新功能", ((notices[0] as Map<*, *>)["title"]))
+        assertEquals("系统维护", ((notices[1] as Map<*, *>)["title"]))
+
+        // 校验：标题/内容为空 → 1004
+        assertEquals(1004, call<ErrorResponse>(HttpMethod.POST, "/api/admin/notices", token = admin, body = mapOf("title" to "", "content" to "x")).body!!.code)
+
+        // 普通用户无权发布/删除
+        assertEquals(HttpStatus.FORBIDDEN, call<ErrorResponse>(HttpMethod.POST, "/api/admin/notices", token = user, body = mapOf("title" to "x", "content" to "y")).statusCode)
+        assertEquals(HttpStatus.FORBIDDEN, call<ErrorResponse>(HttpMethod.DELETE, "/api/admin/notices/1", token = user).statusCode)
+
+        // 删除 + 删除不存在 → 2002/404
+        val firstId = ((call<Map<*, *>>(HttpMethod.GET, "/api/notices", token = user).body!!["notices"] as List<*>)[0] as Map<*, *>)["id"] as Number
+        assertEquals(HttpStatus.NO_CONTENT, call<Void>(HttpMethod.DELETE, "/api/admin/notices/${firstId.toInt()}", token = admin).statusCode)
+        val delAgain = call<ErrorResponse>(HttpMethod.DELETE, "/api/admin/notices/${firstId.toInt()}", token = admin)
+        assertEquals(HttpStatus.NOT_FOUND, delAgain.statusCode)
+        assertEquals(2002, delAgain.body!!.code)
+    }
+
+    @Test
     fun `我的历史点餐（D-011）`() {
         setTestDate("2026-09-17")
         val user = login("sunqi", "123456")
