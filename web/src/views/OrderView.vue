@@ -4,6 +4,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { api } from '../api'
 import type { ChatResponse, TodayAllResponse, TodayStatus } from '../api/types'
 import { ChatSocket } from '../utils/chatSocket'
+import { isNearBottom } from '../utils/scroll'
 import { formatOrderedAt, formatRemain, windowState } from '../utils/window'
 import { getToken } from '../utils/cookie'
 import { userStore } from '../store/user'
@@ -36,11 +37,28 @@ const chatLoading = ref(false)
 const chatSubmitting = ref(false)
 const myLoginName = computed(() => userStore.loginName)
 let chatSocket: ChatSocket | null = null
+let followBottom = true
+const chatListEl = ref<HTMLElement | null>(null)
+
+/** 是否处于底部附近（追加消息前判定，追加后按需跟随滚动） */
+function onChatScroll() {
+  const el = chatListEl.value
+  if (el) followBottom = isNearBottom(el.scrollTop, el.scrollHeight, el.clientHeight)
+}
+
+function scrollChatToBottom() {
+  requestAnimationFrame(() => {
+    const el = chatListEl.value
+    if (el) el.scrollTop = el.scrollHeight
+  })
+}
 
 async function loadChat() {
   chatLoading.value = true
   try {
     chat.value = await api.getTodayChat()
+    followBottom = true
+    scrollChatToBottom()
   } catch {
     /* 拦截器已提示 */
   } finally {
@@ -53,6 +71,10 @@ function connectChatSocket() {
   if (!token) return
   chatSocket = new ChatSocket(token, {
     onChatMessage: (message) => {
+      const el = chatListEl.value
+      const mine = message.loginName === userStore.loginName
+      // 仅当视口已在底部（或消息是自己发的）时跟随滚动，翻看历史时不打断
+      const stay = mine || (el ? isNearBottom(el.scrollTop, el.scrollHeight, el.clientHeight) : true)
       if (!chat.value) chat.value = { date: message.sentAt.slice(0, 10), count: 0, messages: [] }
       const dup = chat.value.messages.some(
         (m) => m.loginName === message.loginName && m.sentAt === message.sentAt && m.content === message.content,
@@ -60,6 +82,7 @@ function connectChatSocket() {
       if (!dup) {
         chat.value.messages.push(message)
         chat.value.count = chat.value.messages.length
+        if (stay) scrollChatToBottom()
       }
     },
     onError: (msg) => ElMessage.warning(msg),
@@ -75,6 +98,7 @@ async function sendChatMsg() {
   }
   chatSubmitting.value = true
   try {
+    followBottom = true
     if (chatSocket?.send(content)) {
       /* 消息经 WS 广播回来后由 onChatMessage 统一追加 */
     } else {
@@ -252,7 +276,13 @@ async function save() {
       </div>
     </template>
 
-    <div v-if="(chat?.messages?.length ?? 0) > 0" class="chat-list" data-test="chat-list">
+    <div
+      v-if="(chat?.messages?.length ?? 0) > 0"
+      ref="chatListEl"
+      class="chat-list"
+      data-test="chat-list"
+      @scroll="onChatScroll"
+    >
       <div v-for="(m, i) in chat!.messages" :key="i" class="chat-item" :class="{ mine: m.loginName === myLoginName }">
         <div class="chat-meta">
           <b>{{ m.displayName }}</b>

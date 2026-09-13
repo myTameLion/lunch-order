@@ -17,6 +17,7 @@ import com.intranet.lunchorder.data.prefs.PrefsStoreProvider
 import com.intranet.lunchorder.data.repo.LunchRepository
 import com.intranet.lunchorder.data.ws.ChatSocketClient
 import com.intranet.lunchorder.databinding.FragmentChatBinding
+import com.intranet.lunchorder.logic.ChatScrollPolicy
 import kotlinx.coroutines.launch
 
 /**
@@ -34,6 +35,9 @@ class ChatFragment : Fragment() {
     private var socket: ChatSocketClient? = null
     private val messages = mutableListOf<ChatMessage>()
 
+    /** 视口在列表尾部时新消息自动跟随滚动（D-015 需求细化） */
+    private var followBottom = true
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -47,6 +51,15 @@ class ChatFragment : Fragment() {
         adapter = ChatAdapter(prefs.loginName)
         binding.rvMessages.layoutManager = LinearLayoutManager(requireContext())
         binding.rvMessages.adapter = adapter
+        binding.rvMessages.addOnScrollListener(object : androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+            override fun onScrolled(rv: androidx.recyclerview.widget.RecyclerView, dx: Int, dy: Int) {
+                val lm = rv.layoutManager as? LinearLayoutManager ?: return
+                followBottom = ChatScrollPolicy.shouldFollowBottom(
+                    lm.findLastVisibleItemPosition(),
+                    adapter.itemCount,
+                )
+            }
+        })
         binding.btnSend.setOnClickListener { send() }
     }
 
@@ -74,7 +87,7 @@ class ChatFragment : Fragment() {
                 if (_binding == null) return@launch
                 messages.clear()
                 messages.addAll(resp.messages)
-                renderMessages()
+                renderMessages(scrollToBottom = true)
                 binding.tvChatDate.text = getString(R.string.chat_title) + " · " + resp.date
             } catch (e: ApiException) {
                 toast(e.message)
@@ -87,11 +100,12 @@ class ChatFragment : Fragment() {
         socket = ChatSocketClient(prefs.serverUrl, prefs.token, object : ChatSocketClient.Listener {
             override fun onChatMessage(message: ChatMessage) {
                 if (_binding == null) return
+                val mine = message.loginName == prefs.loginName
+                val stay = mine || followBottom
                 requireActivity().runOnUiThread {
                     if (messages.none { it.loginName == message.loginName && it.sentAt == message.sentAt }) {
                         messages.add(message)
-                        renderMessages()
-                        binding.rvMessages.scrollToPosition(messages.size - 1)
+                        renderMessages(scrollToBottom = stay)
                     }
                 }
             }
@@ -124,8 +138,7 @@ class ChatFragment : Fragment() {
                     binding.etChatInput.setText("")
                     if (messages.none { it.sentAt == saved.sentAt }) {
                         messages.add(saved)
-                        renderMessages()
-                        binding.rvMessages.scrollToPosition(messages.size - 1)
+                        renderMessages(scrollToBottom = true)
                     }
                 } catch (e: ApiException) {
                     toast(e.message)
@@ -134,10 +147,12 @@ class ChatFragment : Fragment() {
         }
     }
 
-    private fun renderMessages() {
+    private fun renderMessages(scrollToBottom: Boolean = followBottom) {
         if (_binding == null) return
         adapter.submitList(messages.toList())
-        binding.rvMessages.scrollToPosition((messages.size - 1).coerceAtLeast(0))
+        if (scrollToBottom) {
+            binding.rvMessages.post { binding.rvMessages.scrollToPosition((messages.size - 1).coerceAtLeast(0)) }
+        }
         binding.tvChatEmpty.isVisible = messages.isEmpty()
     }
 
