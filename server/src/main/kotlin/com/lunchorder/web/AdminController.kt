@@ -2,6 +2,7 @@ package com.lunchorder.web
 
 import com.lunchorder.exception.BusinessException
 import com.lunchorder.service.ChatService
+import com.lunchorder.service.OrderService
 import com.lunchorder.service.NoticeService
 import com.lunchorder.service.SettingsService
 import com.lunchorder.service.SummaryService
@@ -22,6 +23,7 @@ import com.lunchorder.web.dto.WindowUpdateRequest
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
@@ -42,9 +44,11 @@ class AdminController(
     private val summaryService: SummaryService,
     private val userService: UserService,
     private val chatService: ChatService,
+    private val orderService: OrderService,
     private val noticeService: NoticeService,
     private val settingsService: SettingsService,
     private val windowService: com.lunchorder.service.WindowService,
+    private val clock: java.time.Clock,
 ) {
 
     @GetMapping("/summary")
@@ -94,6 +98,13 @@ class AdminController(
     /** 按天查看公共聊天频道历史记录（D-013，可查任意日期） */
     @GetMapping("/chat")
     fun chat(@RequestParam date: String): ChatResponse = chatService.adminList(parseDate(date))
+
+    /** 管理员代取消指定用户当天订餐（D-017，不受窗口限制） */
+    @DeleteMapping("/orders/today", params = ["loginName"])
+    fun cancelForUser(@RequestParam loginName: String): ResponseEntity<Void> {
+        orderService.cancel(loginName.trim(), java.time.ZonedDateTime.now(clock), isAdmin = true)
+        return ResponseEntity.noContent().build()
+    }
 
     /** 重要通知：列表 / 发布 / 删除（D-015） */
     @GetMapping("/notices")

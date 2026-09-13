@@ -1,19 +1,18 @@
 /**
- * token cookie 工具（契约 D-002）：
- * 与 admin 中台同主机共享 cookie `lunch_token`（path=/，7 天，SameSite=Lax），实现单点登录。
+ * token 会话存储（契约 D-016 变更）：
+ * 使用 sessionStorage——**按浏览器标签页隔离**，web 与 admin 各自独立登录、互不顶线
+ * （此前共享 cookie 会导致一个端登录把另一端踢下线）。
  */
 const KEY = 'lunch_token'
 
-export function setToken(token: string, days = 7): void {
-  const expires = new Date(Date.now() + days * 86_400_000).toUTCString()
-  document.cookie = `${KEY}=${encodeURIComponent(token)}; expires=${expires}; path=/; SameSite=Lax`
+export function setToken(token: string): void {
+  sessionStorage.setItem(KEY, token)
 }
 
 export function getToken(): string | null {
-  const m = document.cookie.match(/(?:^|; )lunch_token=([^;]*)/)
-  return m ? decodeURIComponent(m[1]) : null
+  return sessionStorage.getItem(KEY)
 }
 
 export function clearToken(): void {
-  document.cookie = `${KEY}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`
+  sessionStorage.removeItem(KEY)
 }

@@ -30,7 +30,7 @@ class ChatActivity : AppCompatActivity() {
     private val pollRunnable = object : Runnable {
         override fun run() {
             refresh()
-            mainHandler.postDelayed(this, 10_000L)
+            mainHandler.postDelayed(this, 5_000L)
         }
     }
 

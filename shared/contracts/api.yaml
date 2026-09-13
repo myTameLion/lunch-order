@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: 内网点餐系统 REST API
-  version: 1.4.0
+  version: 1.4.1
   description: |
     单一事实来源，任何模块不得私自偏离。
     - 鉴权：除 POST /api/auth/login 外，均需 Header `Authorization: Bearer <JWT>`（HS256，有效期 7 天，payload 含 sub=loginName / role / pwdVer）。
@@ -312,6 +312,18 @@ paths:
               schema: { type: string, format: binary }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
+
+  /api/admin/orders/today:
+    delete:
+      tags: [admin]
+      summary: 管理员代取消指定用户当天订餐（D-017，不受窗口限制）
+      parameters:
+        - { name: loginName, in: query, required: true, schema: { type: string } }
+      responses:
+        '204': { description: 已取消 }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
 
   /api/admin/notices:
     post:

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Dish, Food, UserFilled } from '@element-plus/icons-vue'
-import { getTodayAll } from '@/api'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { cancelAdminOrder, getTodayAll } from '@/api'
 import type { TodayAllResponse } from '@/api/types'
 import BaseChart from '@/components/BaseChart.vue'
 import StatCard from '@/components/StatCard.vue'
@@ -28,6 +29,17 @@ async function load() {
   } finally {
     loading.value = false
   }
+}
+
+async function cancelOne(loginName: string, displayName: string) {
+  try {
+    await ElMessageBox.confirm(`确定取消 ${displayName} 今天的订餐吗？`, '代取消订餐', { type: 'warning' })
+  } catch {
+    return
+  }
+  await cancelAdminOrder(loginName)
+  ElMessage.success(`已取消 ${displayName} 今天的订餐`)
+  await load()
 }
 // 30 秒轮询保持"实时"（D-008）
 let pollTimer: number | undefined
@@ -104,6 +116,11 @@ const filteredOrders = computed(() => {
         </el-table-column>
         <el-table-column label="登记时间" min-width="150">
           <template #default="{ row }">{{ formatDateTime(row.orderedAt) }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="100">
+          <template #default="{ row }">
+            <el-button link type="danger" @click="cancelOne(row.loginName, row.displayName)">取消订餐</el-button>
+          </template>
         </el-table-column>
       </el-table>
     </el-card>

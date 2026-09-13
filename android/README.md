@@ -1,4 +1,4 @@
-# lunch-order-android · Android 客户端（契约版本: 1.4.0）
+# lunch-order-android · Android 客户端（契约版本: 1.4.1）
 
 Kotlin 2.0.21 + XML（ViewBinding，**禁用 Compose**）+ Retrofit/OkHttp/kotlinx-serialization。minSdk 26 / targetSdk 34 / compileSdk 34。
 

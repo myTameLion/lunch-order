@@ -484,4 +484,28 @@ class ApiIntegrationTest {
         // 范围非法 → 1004
         assertEquals(1004, call<ErrorResponse>(HttpMethod.GET, "/api/me/orders?from=2026-09-17&to=2026-09-01", token = user).body!!.code)
     }
+
+    @Test
+    fun `管理员代取消当天订餐 - 不受窗口限制（D-017）`() {
+        setTestDate("2026-09-21")
+        val admin = login("admin", "admin123")
+        val user = login("sunqi", "123456")
+        call<Void>(HttpMethod.PUT, "/api/orders/today", token = user, body = mapOf("spicy" to true))
+
+        // 普通用户无权代取消
+        assertEquals(
+            HttpStatus.FORBIDDEN,
+            call<ErrorResponse>(HttpMethod.DELETE, "/api/admin/orders/today?loginName=sunqi", token = user).statusCode,
+        )
+
+        // 管理员代取消 → 204，名单清空
+        assertEquals(HttpStatus.NO_CONTENT, call<Void>(HttpMethod.DELETE, "/api/admin/orders/today?loginName=sunqi", token = admin).statusCode)
+        val all = call<Map<*, *>>(HttpMethod.GET, "/api/orders/today/all", token = admin)
+        assertEquals(0, (all.body!!["total"] as Number).toInt())
+
+        // 再取消 → 404/2002
+        val again = call<ErrorResponse>(HttpMethod.DELETE, "/api/admin/orders/today?loginName=sunqi", token = admin)
+        assertEquals(HttpStatus.NOT_FOUND, again.statusCode)
+        assertEquals(2002, again.body!!.code)
+    }
 }

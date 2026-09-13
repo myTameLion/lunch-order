@@ -103,7 +103,7 @@ onMounted(() => {
   void loadChat()
   timer = window.setInterval(tick, 1000)
   pollTimer = window.setInterval(loadAll, 30_000)
-  chatPollTimer = window.setInterval(loadChat, 15_000)
+  chatPollTimer = window.setInterval(loadChat, 5_000)
 })
 onBeforeUnmount(() => {
   if (timer) window.clearInterval(timer)
@@ -221,7 +221,7 @@ async function save() {
     <template #header>
       <div class="card-head">
         <span>今日聊天频道 · {{ chat?.date }}</span>
-        <span class="refresh-hint">仅显示当天消息，每 15 秒刷新</span>
+        <span class="refresh-hint">仅显示当天消息，每 5 秒刷新</span>
       </div>
     </template>
 

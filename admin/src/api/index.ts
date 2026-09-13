@@ -103,6 +103,11 @@ export async function exportUsers(): Promise<AxiosResponse<Blob>> {
   }
 }
 
+/** DELETE /api/admin/orders/today?loginName= 管理员代取消当天订餐（D-017，不受窗口限制） */
+export async function cancelAdminOrder(loginName: string): Promise<void> {
+  await http.delete('/admin/orders/today', { params: { loginName } })
+}
+
 /** GET /api/admin/chat?date= 按天查看公共聊天频道历史记录（D-013） */
 export async function getChatByDate(date: string): Promise<ChatResponse> {
   const { data } = await http.get<ChatResponse>('/admin/chat', { params: { date } })

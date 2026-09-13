@@ -45,7 +45,7 @@ java -jar server/build/libs/server-*.jar
 
 ## 协作约定（变更驱动）
 
-任何跨模块接口/数据/规则改动：先改 `shared/contracts/`，在 `shared/CHANGELOG.md` 顶部追加版本条目，再动代码；各模块 README 记录所依赖的契约版本（当前 **1.4.0**）。
+任何跨模块接口/数据/规则改动：先改 `shared/contracts/`，在 `shared/CHANGELOG.md` 顶部追加版本条目，再动代码；各模块 README 记录所依赖的契约版本（当前 **1.4.1**）。
 
 ## 开源协议
 
