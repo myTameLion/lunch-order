@@ -36,10 +36,10 @@
     <string name="countdown_over">今日点餐登记已结束</string>
     <string name="section_my_order">今天的点餐</string>
     <string name="section_today_all">今日点餐情况</string>
-    <string name="section_chat">聊天频道</string>
-    <string name="chat_secondary_hint">点餐之余，和大家聊聊今天的饭菜</string>
-    <string name="btn_open_chat">进入频道</string>
+    <string name="nav_chat">聊天</string>
     <string name="chat_title">聊天频道</string>
+    <string name="chat_secondary_hint">点餐之余，和大家聊聊今天的饭菜</string>
+    <string name="chat_empty">还没有消息，来说点什么吧</string>
     <string name="hint_chat_message">说点什么…（200 字以内）</string>
     <string name="btn_send">发送</string>
     <string name="toast_chat_sent">已发送</string>

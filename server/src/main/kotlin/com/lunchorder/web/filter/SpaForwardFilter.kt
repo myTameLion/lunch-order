@@ -26,6 +26,7 @@ class SpaForwardFilter : OncePerRequestFilter() {
         val uri = request.requestURI
         val isSpaRoute = request.method == "GET" &&
             !uri.startsWith("/api") &&
+            !uri.startsWith("/ws") &&
             !uri.startsWith("/actuator") &&
             !uri.substringAfterLast('/').contains('.')
 

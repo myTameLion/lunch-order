@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import ElementPlus from 'element-plus'
 import OrderView from '../OrderView.vue'
@@ -41,6 +41,32 @@ const todayAllData = {
 function mountView() {
   return mount(OrderView, { global: { plugins: [ElementPlus] } })
 }
+
+class FakeWebSocket {
+  static instances: FakeWebSocket[] = []
+  readyState = 1
+  sent: string[] = []
+  onopen?: () => void
+  onmessage?: (e: { data: string }) => void
+  onclose?: () => void
+  constructor(public url: string) {
+    FakeWebSocket.instances.push(this)
+    queueMicrotask(() => this.onopen?.())
+  }
+  send(data: string) {
+    this.sent.push(data)
+  }
+  close() {
+    this.onclose?.()
+  }
+}
+
+beforeAll(() => {
+  // @ts-expect-error jsdom 无 WebSocket，注入 fake
+  window.WebSocket = FakeWebSocket
+  // @ts-expect-error
+  window.clearTimeout = window.clearTimeout
+})
 
 describe('OrderView 今日点餐', () => {
   it('窗口外：禁用表单、展示已截止提示与已登记回显', async () => {

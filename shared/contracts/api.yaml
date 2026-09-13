@@ -1,7 +1,13 @@
 openapi: 3.0.3
 info:
   title: 内网点餐系统 REST API
-  version: 1.4.1
+  version: 1.5.0
+  description: |
+    除 REST 外提供 WebSocket 实时聊天通道（D-018）：
+    - 连接：`WS /ws/chat?token=<JWT>`（握手校验，无效拒绝）；
+    - 发送：文本帧 `{"content": "..."}`（1~200 字）；
+    - 接收：`{"type":"chat","message":{loginName,displayName,content,sentAt}}`；错误回发 `{"type":"error","message":...}`；
+    - 历史拉取与兼容发送仍走 REST。
   description: |
     单一事实来源，任何模块不得私自偏离。
     - 鉴权：除 POST /api/auth/login 外，均需 Header `Authorization: Bearer <JWT>`（HS256，有效期 7 天，payload 含 sub=loginName / role / pwdVer）。

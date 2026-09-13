@@ -20,7 +20,6 @@ import com.intranet.lunchorder.data.prefs.PrefsStoreProvider
 import com.intranet.lunchorder.data.repo.LunchRepository
 import com.intranet.lunchorder.databinding.FragmentTodayBinding
 import com.intranet.lunchorder.logic.TimeMath
-import com.intranet.lunchorder.ui.chat.ChatActivity
 import kotlinx.coroutines.launch
 
 /**
@@ -64,9 +63,6 @@ class TodayFragment : Fragment() {
         binding.btnOrder.setOnClickListener { submitOrder() }
         binding.btnCancel.setOnClickListener { confirmCancel() }
         binding.btnRefresh.setOnClickListener { refresh() }
-        binding.btnOpenChat.setOnClickListener {
-            startActivity(Intent(requireContext(), ChatActivity::class.java))
-        }
     }
 
     override fun onStart() {

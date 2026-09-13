@@ -23,6 +23,7 @@ import com.intranet.lunchorder.data.prefs.PrefsStore
 import com.intranet.lunchorder.data.repo.LunchRepository
 import com.intranet.lunchorder.data.prefs.PrefsStoreProvider
 import com.intranet.lunchorder.databinding.ActivityMainBinding
+import com.intranet.lunchorder.ui.chat.ChatFragment
 import com.intranet.lunchorder.ui.mine.MineFragment
 import com.intranet.lunchorder.ui.settings.SettingsFragment
 import com.intranet.lunchorder.ui.today.TodayFragment
@@ -139,6 +140,7 @@ class MainActivity : AppCompatActivity() {
     private fun switchTo(itemId: Int): Boolean {
         val fragment: Fragment = when (itemId) {
             R.id.nav_today -> TodayFragment()
+            R.id.nav_chat -> ChatFragment()
             R.id.nav_mine -> MineFragment()
             R.id.nav_settings -> SettingsFragment()
             else -> return false

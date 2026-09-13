@@ -3,7 +3,10 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { api } from '../api'
 import type { ChatResponse, TodayAllResponse, TodayStatus } from '../api/types'
+import { ChatSocket } from '../utils/chatSocket'
 import { formatOrderedAt, formatRemain, windowState } from '../utils/window'
+import { getToken } from '../utils/cookie'
+import { userStore } from '../store/user'
 
 const status = ref<TodayStatus | null>(null)
 const willOrder = ref(false)
@@ -26,12 +29,13 @@ async function loadAll() {
   }
 }
 
-/** 公共聊天频道（D-013）：次要功能，仅展示当天消息，15 秒轮询 */
+/** 公共聊天频道（D-013/D-018）：WebSocket 实时收发，历史经 REST 拉取 */
 const chat = ref<ChatResponse | null>(null)
 const chatInput = ref('')
 const chatLoading = ref(false)
 const chatSubmitting = ref(false)
-let chatPollTimer: number | undefined
+const myLoginName = computed(() => userStore.loginName)
+let chatSocket: ChatSocket | null = null
 
 async function loadChat() {
   chatLoading.value = true
@@ -44,6 +48,25 @@ async function loadChat() {
   }
 }
 
+function connectChatSocket() {
+  const token = getToken()
+  if (!token) return
+  chatSocket = new ChatSocket(token, {
+    onChatMessage: (message) => {
+      if (!chat.value) chat.value = { date: message.sentAt.slice(0, 10), count: 0, messages: [] }
+      const dup = chat.value.messages.some(
+        (m) => m.loginName === message.loginName && m.sentAt === message.sentAt && m.content === message.content,
+      )
+      if (!dup) {
+        chat.value.messages.push(message)
+        chat.value.count = chat.value.messages.length
+      }
+    },
+    onError: (msg) => ElMessage.warning(msg),
+  })
+  chatSocket.connect()
+}
+
 async function sendChatMsg() {
   const content = chatInput.value.trim()
   if (!content) {
@@ -52,9 +75,13 @@ async function sendChatMsg() {
   }
   chatSubmitting.value = true
   try {
-    await api.sendChat(content)
+    if (chatSocket?.send(content)) {
+      /* 消息经 WS 广播回来后由 onChatMessage 统一追加 */
+    } else {
+      await api.sendChat(content) // WS 未就绪时 REST 兜底
+      await loadChat()
+    }
     chatInput.value = ''
-    await loadChat()
   } catch {
     /* 拦截器已提示 */
   } finally {
@@ -101,14 +128,14 @@ onMounted(() => {
   void load()
   void loadAll()
   void loadChat()
+  connectChatSocket()
   timer = window.setInterval(tick, 1000)
   pollTimer = window.setInterval(loadAll, 30_000)
-  chatPollTimer = window.setInterval(loadChat, 5_000)
 })
 onBeforeUnmount(() => {
   if (timer) window.clearInterval(timer)
   if (pollTimer) window.clearInterval(pollTimer)
-  if (chatPollTimer) window.clearInterval(chatPollTimer)
+  chatSocket?.close()
 })
 
 async function save() {
@@ -221,12 +248,12 @@ async function save() {
     <template #header>
       <div class="card-head">
         <span>今日聊天频道 · {{ chat?.date }}</span>
-        <span class="refresh-hint">仅显示当天消息，每 5 秒刷新</span>
+        <span class="refresh-hint">仅显示当天消息 · 实时推送</span>
       </div>
     </template>
 
     <div v-if="(chat?.messages?.length ?? 0) > 0" class="chat-list" data-test="chat-list">
-      <div v-for="(m, i) in chat!.messages" :key="i" class="chat-item">
+      <div v-for="(m, i) in chat!.messages" :key="i" class="chat-item" :class="{ mine: m.loginName === myLoginName }">
         <div class="chat-meta">
           <b>{{ m.displayName }}</b>
           <span class="chat-time">{{ formatOrderedAt(m.sentAt) }}</span>
@@ -303,6 +330,10 @@ async function save() {
   border-radius: 8px;
   background: #f5f7fa;
   margin-bottom: 8px;
+}
+.chat-item.mine {
+  background: #ecf5ff;
+  margin-left: 15%;
 }
 .chat-meta {
   display: flex;

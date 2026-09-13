@@ -33,6 +33,7 @@ repositories {
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-websocket")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     // 仅密码加密（BCrypt），不引入 Spring Security 全家桶，更无任何数据库/ORM
     implementation("org.springframework.security:spring-security-crypto")
@@ -43,6 +44,7 @@ dependencies {
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.mockk:mockk:1.13.13")
+    testImplementation("com.squareup.okhttp3:okhttp:4.12.0")
 }
 
 tasks.withType<Test> {

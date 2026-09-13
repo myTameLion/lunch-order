@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.test.web.client.TestRestTemplate
+import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.context.annotation.Primary
@@ -61,6 +62,9 @@ class ApiIntegrationTest {
 
     @Autowired
     lateinit var rest: TestRestTemplate
+
+    @LocalServerPort
+    var serverPort: Int = 0
 
     companion object {
         @TempDir
@@ -507,5 +511,68 @@ class ApiIntegrationTest {
         val again = call<ErrorResponse>(HttpMethod.DELETE, "/api/admin/orders/today?loginName=sunqi", token = admin)
         assertEquals(HttpStatus.NOT_FOUND, again.statusCode)
         assertEquals(2002, again.body!!.code)
+    }
+
+    @Test
+    fun `WebSocket 聊天 - 连接 发送 实时广播 无效 token 拒绝（D-018）`() {
+        setTestDate("2026-09-22")
+        val wsPort = serverPort
+        val admin = login("admin", "admin123")
+        val user = login("zhangsan", "123456")
+
+        val client = okhttp3.OkHttpClient.Builder()
+            .readTimeout(java.time.Duration.ofSeconds(5))
+            .build()
+
+        // B（zhangsan）先连接等待广播
+        val received = java.util.concurrent.LinkedBlockingQueue<String>()
+        val bLatch = java.util.concurrent.CountDownLatch(1)
+        val wsB = client.newWebSocket(
+            okhttp3.Request.Builder().url("ws://localhost:$wsPort/ws/chat?token=$user").build(),
+            object : okhttp3.WebSocketListener() {
+                override fun onMessage(webSocket: okhttp3.WebSocket, text: String) {
+                    received.add(text); bLatch.countDown()
+                }
+            },
+        )
+
+        // A（admin）连接并发送
+        val aLatch = java.util.concurrent.CountDownLatch(1)
+        val wsA = client.newWebSocket(
+            okhttp3.Request.Builder().url("ws://localhost:$wsPort/ws/chat?token=$admin").build(),
+            object : okhttp3.WebSocketListener() {
+                override fun onOpen(webSocket: okhttp3.WebSocket, response: okhttp3.Response) {
+                    aLatch.countDown()
+                }
+            },
+        )
+        assertTrue(aLatch.await(5, java.util.concurrent.TimeUnit.SECONDS), "admin WS 应连接成功")
+        wsA.send("""{"content":"实时消息来了"}""")
+
+        // B 应实时收到广播
+        assertTrue(bLatch.await(5, java.util.concurrent.TimeUnit.SECONDS), "B 应在 5 秒内收到广播")
+        val broadcast = received.poll()!!
+        assertTrue(broadcast.contains("\"type\":\"chat\""))
+        assertTrue(broadcast.contains("实时消息来了"))
+
+        // 历史接口能查到该消息
+        val history = call<Map<*, *>>(HttpMethod.GET, "/api/orders/today/chat", token = admin)
+        assertEquals(1, (history.body!!["count"] as Number).toInt())
+
+        wsA.close(1000, "bye")
+        wsB.close(1000, "bye")
+        client.dispatcher.executorService.shutdown()
+
+        // 无效 token 握手被拒：onFailure 触发
+        val failLatch = java.util.concurrent.CountDownLatch(1)
+        client.newWebSocket(
+            okhttp3.Request.Builder().url("ws://localhost:$wsPort/ws/chat?token=bad-token").build(),
+            object : okhttp3.WebSocketListener() {
+                override fun onFailure(webSocket: okhttp3.WebSocket, t: Throwable, response: okhttp3.Response?) {
+                    failLatch.countDown()
+                }
+            },
+        )
+        assertTrue(failLatch.await(5, java.util.concurrent.TimeUnit.SECONDS), "无效 token 应被拒绝")
     }
 }

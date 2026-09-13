@@ -31,12 +31,6 @@
             android:exported="false"
             android:launchMode="singleTask" />
 
-        <activity
-            android:name=".ui.chat.ChatActivity"
-            android:exported="false"
-            android:label="@string/chat_title"
-            android:parentActivityName=".ui.MainActivity" />
-
         <receiver
             android:name=".alarm.AlarmReceiver"
             android:exported="false" />
